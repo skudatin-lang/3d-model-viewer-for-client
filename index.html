@@ -260,38 +260,30 @@
             font-size: 12px;
         }
         
-        .upload-instructions {
+        .file-info {
             background: rgba(40, 40, 50, 0.7);
-            padding: 15px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 5px;
             margin-top: 10px;
-            font-size: 14px;
+            font-size: 12px;
         }
-        .upload-instructions h4 {
-            color: #ff9d00;
-            margin-bottom: 10px;
+        .file-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
         }
-        .upload-instructions ol {
-            padding-left: 20px;
-            margin-bottom: 10px;
-        }
-        .upload-instructions li {
-            margin-bottom: 8px;
-        }
-        .upload-instructions a {
-            color: #4cc9f0;
-            text-decoration: none;
-        }
-        .upload-instructions a:hover {
-            text-decoration: underline;
+        .file-size-warning {
+            color: #ff6b6b;
+            font-size: 11px;
+            margin-top: 5px;
+            text-align: center;
         }
         
         /* Client mode styles */
         .client-mode .file-input-container,
         .client-mode .url-input-container,
         .client-mode #test-model,
-        .client-mode .share-section,
-        .client-mode .upload-instructions {
+        .client-mode .share-section {
             display: none !important;
         }
         
@@ -360,19 +352,21 @@
                             <button id="copy-share-url" class="screenshot-btn">Copy Share URL</button>
                             <button id="new-share-url" class="screenshot-btn">Create New Share URL</button>
                         </div>
+                        <div class="file-info" id="file-info" style="display: none;">
+                            <div class="file-info-item">
+                                <span>File Name:</span>
+                                <span id="file-name">-</span>
+                            </div>
+                            <div class="file-info-item">
+                                <span>File Size:</span>
+                                <span id="file-size">-</span>
+                            </div>
+                            <div class="file-info-item">
+                                <span>Storage:</span>
+                                <span id="storage-type">-</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Upload instructions -->
-                <div class="control-group upload-instructions">
-                    <h4>How to Share Models with Clients</h4>
-                    <ol>
-                        <li>Upload your model to a cloud service (Google Drive, Dropbox, etc.)</li>
-                        <li>Get a shareable link (make sure it's publicly accessible)</li>
-                        <li>Paste the link in the URL field above and click "Load from URL"</li>
-                        <li>Use the "Copy Share URL" button to get the client link</li>
-                    </ol>
-                    <p><strong>Note:</strong> Local files can be previewed but cannot be shared directly.</p>
                 </div>
 
                 <!-- These sections remain visible in both modes -->
@@ -461,35 +455,65 @@
             return urlParams.get('model');
         }
         
-        function createShareUrl(modelUrl) {
+        function getModelDataFromParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const modelData = urlParams.get('data');
+            return modelData ? JSON.parse(decodeURIComponent(modelData)) : null;
+        }
+        
+        function createShareUrl(modelUrl, modelData = null) {
             const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?model=${encodeURIComponent(modelUrl)}`;
+            if (modelData) {
+                // Для локальных файлов - сохраняем данные в URL
+                return `${baseUrl}?data=${encodeURIComponent(JSON.stringify(modelData))}`;
+            } else {
+                // Для внешних URL
+                return `${baseUrl}?model=${encodeURIComponent(modelUrl)}`;
+            }
         }
         
         function updateShareUrlDisplay() {
             const shareUrlElement = document.getElementById('share-url');
-            if (currentModelFileUrl && isValidShareableUrl(currentModelFileUrl)) {
+            const fileInfoElement = document.getElementById('file-info');
+            
+            if (currentModelFileData) {
+                // Локальный файл - показываем информацию
+                const shareUrl = createShareUrl(null, currentModelFileData);
+                shareUrlElement.textContent = shareUrl;
+                shareUrlElement.style.color = '#4cc9f0';
+                
+                // Показываем информацию о файле
+                document.getElementById('file-name').textContent = currentModelFileData.name;
+                document.getElementById('file-size').textContent = formatFileSize(currentModelFileData.size);
+                document.getElementById('storage-type').textContent = 'Browser Storage';
+                fileInfoElement.style.display = 'block';
+                
+            } else if (currentModelFileUrl) {
+                // Внешний URL
                 const shareUrl = createShareUrl(currentModelFileUrl);
                 shareUrlElement.textContent = shareUrl;
                 shareUrlElement.style.color = '#4cc9f0';
+                fileInfoElement.style.display = 'none';
             } else {
-                shareUrlElement.textContent = 'No shareable model loaded';
+                shareUrlElement.textContent = 'No model loaded';
                 shareUrlElement.style.color = '#ff6b6b';
+                fileInfoElement.style.display = 'none';
             }
         }
         
-        function isValidShareableUrl(url) {
-            // Check if URL is shareable (not a blob URL and not a local file)
-            return !url.startsWith('blob:') && 
-                   !url.startsWith('file:') && 
-                   (url.startsWith('http://') || url.startsWith('https://'));
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
         
         function copyShareUrl() {
             const shareUrlElement = document.getElementById('share-url');
             const shareUrl = shareUrlElement.textContent;
             
-            if (shareUrl !== 'No shareable model loaded') {
+            if (shareUrl !== 'No model loaded') {
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     updateStatus('Share URL copied to clipboard!', false);
                 }).catch(() => {
@@ -501,24 +525,22 @@
                     document.body.removeChild(textArea);
                     updateStatus('Share URL copied to clipboard!', false);
                 });
-            } else {
-                updateStatus('Cannot share local files. Please use a cloud storage URL.', true);
             }
         }
         
         function createNewShareUrl() {
-            if (currentModelFileUrl && isValidShareableUrl(currentModelFileUrl)) {
+            if (currentModelFileUrl || currentModelFileData) {
                 updateShareUrlDisplay();
                 copyShareUrl();
             } else {
-                updateStatus('No shareable model loaded. Please load from a cloud storage URL.', true);
+                updateStatus('No model loaded to share', true);
             }
         }
         
         // ==================== CLIENT MODE DETECTION ====================
         
         function isClientMode() {
-            return getModelUrlFromParams() !== null;
+            return getModelUrlFromParams() !== null || getModelDataFromParams() !== null;
         }
         
         function enableClientMode() {
@@ -531,6 +553,7 @@
         
         let currentModel = null;
         let currentModelFileUrl = null;
+        let currentModelFileData = null;
         let gridVisible = true;
         let axesVisible = true;
         let wireframeVisible = false;
@@ -698,44 +721,38 @@
         
         // ==================== UNIFIED MODEL LOADING SYSTEM ====================
         
-        // Main loading function - works for both test models and user models
-        function loadModelFromURL(url, isLocalFile = false) {
+        function loadModelFromURL(url) {
             return new Promise((resolve, reject) => {
-                updateStatus(`Loading model...`, false);
+                updateStatus(`Loading model from URL...`, false);
                 showLoading(true);
                 
-                // Clear previous model
                 if (currentModel) {
                     scene.remove(currentModel);
                     currentModel = null;
                 }
                 
                 const fileExtension = url.toLowerCase().split('.').pop();
-                console.log("Loading URL:", url, "File extension:", fileExtension);
                 
                 // Handle Google Drive URLs
                 let finalUrl = url;
-                if (url.includes('drive.google.com') && !isLocalFile) {
+                if (url.includes('drive.google.com')) {
                     const fileId = url.match(/[-\w]{25,}/);
                     if (fileId) {
                         finalUrl = `https://drive.google.com/uc?export=download&id=${fileId[0]}`;
-                        console.log("Converted Google Drive URL to:", finalUrl);
                     }
                 }
                 
-                // Choose loader based on file extension
                 if (fileExtension === 'stl' || finalUrl.includes('.stl')) {
-                    loadSTLFromURL(finalUrl, isLocalFile).then(resolve).catch(reject);
+                    loadSTLFromURL(finalUrl).then(resolve).catch(reject);
                 } else if (fileExtension === 'obj' || finalUrl.includes('.obj')) {
-                    loadOBJFromURL(finalUrl, isLocalFile).then(resolve).catch(reject);
+                    loadOBJFromURL(finalUrl).then(resolve).catch(reject);
                 } else {
-                    // Default to GLTF/GLB loader
-                    loadGLBFromURL(finalUrl, isLocalFile).then(resolve).catch(reject);
+                    loadGLBFromURL(finalUrl).then(resolve).catch(reject);
                 }
             });
         }
         
-        function loadGLBFromURL(url, isLocalFile = false) {
+        function loadGLBFromURL(url) {
             return new Promise((resolve, reject) => {
                 const loader = new THREE.GLTFLoader();
                 
@@ -744,31 +761,23 @@
                     function(gltf) {
                         const model = gltf.scene;
                         setupModel(model);
-                        
-                        // Store URL only if it's shareable (not a local file)
-                        if (!isLocalFile) {
-                            currentModelFileUrl = url;
-                            updateShareUrlDisplay();
-                        } else {
-                            updateStatus("✓ Local model loaded (preview only)", false);
-                        }
-                        
+                        currentModelFileUrl = url;
+                        currentModelFileData = null;
+                        updateShareUrlDisplay();
                         resolve(model);
                     },
                     function(xhr) {
-                        // Progress tracking - same for all model types
                         const percent = Math.round((xhr.loaded / xhr.total) * 100);
                         document.getElementById('progress').textContent = percent + '%';
                     },
                     function(error) {
-                        console.error("GLTF load error:", error);
                         reject(new Error("Failed to load GLB/GLTF file"));
                     }
                 );
             });
         }
         
-        function loadSTLFromURL(url, isLocalFile = false) {
+        function loadSTLFromURL(url) {
             return new Promise((resolve, reject) => {
                 const loader = new THREE.STLLoader();
                 
@@ -783,15 +792,9 @@
                             const material = createMaterial(currentMaterialType, null, wireframeVisible);
                             const mesh = new THREE.Mesh(geometry, material);
                             setupModel(mesh);
-                            
-                            // Store URL only if it's shareable (not a local file)
-                            if (!isLocalFile) {
-                                currentModelFileUrl = url;
-                                updateShareUrlDisplay();
-                            } else {
-                                updateStatus("✓ Local model loaded (preview only)", false);
-                            }
-                            
+                            currentModelFileUrl = url;
+                            currentModelFileData = null;
+                            updateShareUrlDisplay();
                             resolve(mesh);
                         } catch (error) {
                             reject(new Error("Failed to parse STL file"));
@@ -803,7 +806,7 @@
             });
         }
         
-        function loadOBJFromURL(url, isLocalFile = false) {
+        function loadOBJFromURL(url) {
             return new Promise((resolve, reject) => {
                 const loader = new THREE.OBJLoader();
                 
@@ -816,7 +819,6 @@
                         try {
                             const model = loader.parse(data);
                             
-                            // Apply material to all meshes
                             model.traverse((child) => {
                                 if (child.isMesh) {
                                     const material = createMaterial(currentMaterialType, null, wireframeVisible);
@@ -825,15 +827,9 @@
                             });
                             
                             setupModel(model);
-                            
-                            // Store URL only if it's shareable (not a local file)
-                            if (!isLocalFile) {
-                                currentModelFileUrl = url;
-                                updateShareUrlDisplay();
-                            } else {
-                                updateStatus("✓ Local model loaded (preview only)", false);
-                            }
-                            
+                            currentModelFileUrl = url;
+                            currentModelFileData = null;
+                            updateShareUrlDisplay();
                             resolve(model);
                         } catch (error) {
                             reject(new Error("Failed to parse OBJ file"));
@@ -845,39 +841,115 @@
             });
         }
         
-        // Test model function - uses the same unified loading system
+        // Test model function
         function loadTestModel() {
             const testUrl = "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf";
             updateStatus("Loading test model...", false);
-            loadModelFromURL(testUrl, false)
+            loadModelFromURL(testUrl)
                 .catch(error => {
                     updateStatus("Test model failed. Try loading a local file.", true);
                 });
         }
         
+        // Load model from base64 data
+        function loadModelFromData(modelData) {
+            return new Promise((resolve, reject) => {
+                updateStatus(`Loading model from data...`, false);
+                showLoading(true);
+                
+                if (currentModel) {
+                    scene.remove(currentModel);
+                    currentModel = null;
+                }
+                
+                const fileExtension = modelData.name.toLowerCase().split('.').pop();
+                const binaryData = Uint8Array.from(atob(modelData.data), c => c.charCodeAt(0));
+                
+                if (fileExtension === 'stl') {
+                    try {
+                        const loader = new THREE.STLLoader();
+                        const geometry = loader.parse(binaryData.buffer);
+                        const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        setupModel(mesh);
+                        resolve(mesh);
+                    } catch (error) {
+                        reject(new Error("Failed to parse STL file from data"));
+                    }
+                } else if (fileExtension === 'obj') {
+                    try {
+                        const loader = new THREE.OBJLoader();
+                        const text = new TextDecoder().decode(binaryData);
+                        const model = loader.parse(text);
+                        
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                                child.material = material;
+                            }
+                        });
+                        
+                        setupModel(model);
+                        resolve(model);
+                    } catch (error) {
+                        reject(new Error("Failed to parse OBJ file from data"));
+                    }
+                } else {
+                    // For GLB/GLTF - create blob URL
+                    const blob = new Blob([binaryData], { type: 'application/octet-stream' });
+                    const objectUrl = URL.createObjectURL(blob);
+                    
+                    const loader = new THREE.GLTFLoader();
+                    loader.load(
+                        objectUrl,
+                        function(gltf) {
+                            const model = gltf.scene;
+                            setupModel(model);
+                            URL.revokeObjectURL(objectUrl);
+                            resolve(model);
+                        },
+                        function(xhr) {
+                            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                            document.getElementById('progress').textContent = percent + '%';
+                        },
+                        function(error) {
+                            URL.revokeObjectURL(objectUrl);
+                            reject(new Error("Failed to load model from data"));
+                        }
+                    );
+                }
+            });
+        }
+        
         // Auto-load from URL parameters
         window.addEventListener('load', function() {
             const modelUrlFromParams = getModelUrlFromParams();
+            const modelDataFromParams = getModelDataFromParams();
             
-            if (modelUrlFromParams) {
-                // Enable client mode if URL has model parameter
+            if (modelUrlFromParams || modelDataFromParams) {
                 enableClientMode();
                 updateStatus("Loading your model...", false);
                 
-                // Use the same unified loading system for client models
                 setTimeout(() => {
-                    console.log("Auto-loading model from URL:", modelUrlFromParams);
-                    loadModelFromURL(modelUrlFromParams, false)
-                        .then(() => {
-                            console.log("Model loaded successfully from URL parameters");
-                        })
-                        .catch(error => {
-                            console.error("Failed to load model from URL:", error);
-                            updateStatus("Failed to load model from URL. Please check the link.", true);
-                        });
+                    if (modelDataFromParams) {
+                        // Load from embedded data
+                        loadModelFromData(modelDataFromParams)
+                            .then(() => {
+                                currentModelFileData = modelDataFromParams;
+                                updateShareUrlDisplay();
+                            })
+                            .catch(error => {
+                                updateStatus("Failed to load model from data.", true);
+                            });
+                    } else {
+                        // Load from URL
+                        loadModelFromURL(modelUrlFromParams)
+                            .catch(error => {
+                                updateStatus("Failed to load model from URL.", true);
+                            });
+                    }
                 }, 500);
             } else {
-                // Regular mode - show loading instructions
                 updateStatus("Ready to load models. Click 'Load Test Model' to start.", false);
             }
             
@@ -886,12 +958,11 @@
         
         // ==================== EVENT LISTENERS ====================
         
-        // Only add these event listeners in non-client mode
         if (!isClientMode()) {
             document.getElementById('load-url-model').addEventListener('click', function() {
                 const url = document.getElementById('model-url').value.trim();
                 if (url) {
-                    loadModelFromURL(url, false)
+                    loadModelFromURL(url)
                         .catch(error => {
                             updateStatus(`Failed to load from URL: ${error.message}`, true);
                         });
@@ -913,27 +984,59 @@
             });
         }
         
-        // Local file loading - converts file to blob URL and uses unified system
         function loadLocalFile(file) {
+            // Check file size (limit to 10MB for URL length limitations)
+            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+            if (file.size > MAX_FILE_SIZE) {
+                updateStatus(`File too large (${formatFileSize(file.size)}). Maximum size is 10MB.`, true);
+                return;
+            }
+            
             updateStatus("Loading local file...", false);
             showLoading(true);
             
-            const fileExtension = file.name.toLowerCase().split('.').pop();
-            const objectUrl = URL.createObjectURL(file);
+            const reader = new FileReader();
             
-            // Use the same unified loading system with isLocalFile = true
-            loadModelFromURL(objectUrl, true)
-                .then(() => {
-                    URL.revokeObjectURL(objectUrl); // Clean up blob URL
-                })
-                .catch(error => {
-                    updateStatus(`Error loading file: ${error.message}`, true);
-                    showLoading(false);
-                    URL.revokeObjectURL(objectUrl);
-                });
+            reader.onload = function(e) {
+                // Convert to base64 for storage in URL
+                const binaryData = new Uint8Array(e.target.result);
+                const base64Data = btoa(String.fromCharCode(...binaryData));
+                
+                // Store file data for sharing
+                currentModelFileData = {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    data: base64Data,
+                    timestamp: Date.now()
+                };
+                
+                currentModelFileUrl = null;
+                
+                // Load the model
+                const objectUrl = URL.createObjectURL(file);
+                loadModelFromURL(objectUrl)
+                    .then(() => {
+                        URL.revokeObjectURL(objectUrl);
+                        updateShareUrlDisplay();
+                        updateStatus("✓ Local model loaded and ready to share!", false);
+                    })
+                    .catch(error => {
+                        URL.revokeObjectURL(objectUrl);
+                        updateStatus(`Error loading file: ${error.message}`, true);
+                        showLoading(false);
+                    });
+            };
+            
+            reader.onerror = () => {
+                updateStatus("Error reading file", true);
+                showLoading(false);
+            };
+            
+            reader.readAsArrayBuffer(file);
         }
         
-        // Material controls (available in both modes)
+        // Material controls
         document.querySelectorAll('.material-btn').forEach(button => {
             button.addEventListener('click', function() {
                 currentMaterialType = this.dataset.material;
@@ -950,7 +1053,7 @@
             });
         });
         
-        // Basic controls (available in both modes)
+        // Basic controls
         document.getElementById('toggle-wireframe').addEventListener('click', function() {
             wireframeVisible = !wireframeVisible;
             currentMaterials.forEach(item => {
