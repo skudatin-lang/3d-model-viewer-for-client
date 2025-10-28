@@ -260,222 +260,25 @@
             font-size: 12px;
         }
         
-        .screenshot-preview {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .screenshot-preview-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background: rgba(30, 30, 40, 0.9);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        .screenshot-preview h3 {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .screenshot-image-container {
-            display: flex;
-            justify-content: center;
-            max-height: 70vh;
-            overflow: auto;
-            border-radius: 5px;
-            background: #1a1a1a;
-            padding: 10px;
-        }
-        .screenshot-image-container img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 5px;
-            border: 2px solid #fff;
-        }
-        .screenshot-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .screenshot-buttons button {
-            width: auto;
-            padding: 10px 20px;
-            min-width: 180px;
-        }
-        footer {
-            margin-top: 30px;
-            text-align: center;
-            opacity: 0.7;
-            font-size: 0.9rem;
-        }
-        
-        .annotation-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-            background: rgba(40, 40, 50, 0.7);
-            padding: 15px;
-            border-radius: 5px;
-        }
-        .annotation-control-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .annotation-control-row label {
-            min-width: 120px;
-        }
-        .annotation-control-row input {
-            flex: 1;
-        }
-        .annotation-buttons {
-            display: flex;
-            gap: 5px;
-        }
-        .annotation-buttons button {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-        }
-        .annotation-canvas-container {
-            position: relative;
-            display: inline-block;
-            max-width: 100%;
-        }
-        #annotation-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            cursor: crosshair;
-        }
-        
-        .annotation-list {
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 10px;
-            background: rgba(30, 30, 40, 0.7);
-            border-radius: 5px;
-            padding: 5px;
-        }
-        .annotation-item {
-            display: flex;
-            align-items: center;
-            padding: 5px;
-            margin: 3px 0;
-            border-radius: 3px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .annotation-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        .annotation-item.selected {
-            background: rgba(76, 201, 240, 0.3);
-            border: 1px solid #4cc9f0;
-        }
-        .annotation-number {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: #f72585;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 24px;
-            margin-right: 10px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .annotation-size {
-            margin-left: auto;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        
-        .comment-controls {
-            margin-top: 10px;
-            padding: 10px;
+        .upload-section {
             background: rgba(50, 50, 60, 0.7);
-            border-radius: 5px;
-            display: none;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
         }
-        .comment-control-row {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        .comment-control-row label {
-            font-size: 14px;
-        }
-        .comment-control-row select, 
-        .comment-control-row input {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #555;
-            background: rgba(30, 30, 40, 0.8);
-            color: white;
-        }
-        .comment-control-row textarea {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #555;
-            background: rgba(30, 30, 40, 0.8);
-            color: white;
-            resize: vertical;
-            min-height: 60px;
-        }
-        .comment-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #4cc9f0;
-            border-radius: 50%;
-            margin-left: 5px;
-        }
-        
-        .close-preview-top {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-            transition: all 0.3s;
-        }
-        .close-preview-top:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+        .upload-info {
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+            opacity: 0.8;
         }
         
         /* Client mode styles */
         .client-mode .file-input-container,
         .client-mode .url-input-container,
         .client-mode #test-model,
-        .client-mode .share-section {
+        .client-mode .share-section,
+        .client-mode .upload-section {
             display: none !important;
         }
         
@@ -491,25 +294,6 @@
             #controls {
                 width: 100%;
                 max-width: 300px;
-            }
-            .screenshot-preview-content {
-                padding: 15px;
-            }
-            .annotation-control-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .annotation-control-row label {
-                min-width: auto;
-            }
-            .screenshot-buttons {
-                flex-direction: column;
-            }
-            .screenshot-buttons button {
-                width: 100%;
-            }
-            .share-buttons {
-                flex-direction: column;
             }
         }
     </style>
@@ -549,6 +333,16 @@
                     </div>
                     
                     <button id="test-model" style="background: #ff6b6b;">Load Test Model</button>
+                </div>
+
+                <!-- Upload section - for storing models on server -->
+                <div class="control-group upload-section">
+                    <h3>Upload & Share Model</h3>
+                    <div class="upload-section">
+                        <p>Upload your model to generate a shareable link:</p>
+                        <button id="upload-model" class="screenshot-btn">Upload Current Model</button>
+                        <p class="upload-info">This will save your model and generate a permanent share URL</p>
+                    </div>
                 </div>
 
                 <!-- Share section - hidden in client mode -->
@@ -625,90 +419,7 @@
                     <button id="bg-gradient">Gradient BG</button>
                 </div>
 
-                <div class="control-group">
-                    <h3>Screenshot</h3>
-                    <button id="take-screenshot" class="screenshot-btn">Take Screenshot</button>
-                </div>
-
                 <div class="status" id="status">Ready to load models. Click "Load Test Model" to start.</div>
-            </div>
-        </div>
-
-        <div class="screenshot-preview" id="screenshot-preview">
-            <button class="close-preview-top" id="close-preview-top">×</button>
-            <div class="screenshot-preview-content">
-                <h3>Screenshot Preview with Annotations</h3>
-                
-                <div class="annotation-controls">
-                    <div class="annotation-control-row">
-                        <label for="default-annotation-radius">Default Marker Radius:</label>
-                        <input type="range" id="default-annotation-radius" min="10" max="50" value="20">
-                        <span id="default-radius-value">20px</span>
-                    </div>
-                    
-                    <div id="selected-annotation-controls" style="display: none;">
-                        <div class="annotation-control-row">
-                            <label for="selected-annotation-radius">Selected Marker Radius:</label>
-                            <input type="range" id="selected-annotation-radius" min="10" max="50" value="20">
-                            <span id="selected-radius-value">20px</span>
-                        </div>
-                        
-                        <div class="comment-controls" id="comment-controls">
-                            <div class="comment-control-row">
-                                <label for="comment-type">Comment Type:</label>
-                                <select id="comment-type">
-                                    <option value="">No comment</option>
-                                    <option value="make_more_convex">Сделать более выпуклым</option>
-                                    <option value="make_more_concave">Сделать более вдавленным</option>
-                                    <option value="make_narrower_width">Сделать уже по ширине</option>
-                                    <option value="make_wider_width">Сделать шире по ширине</option>
-                                    <option value="make_narrower_height">Сделать уже по высоте</option>
-                                    <option value="make_wider_height">Сделать шире по высоте</option>
-                                    <option value="custom">Свой вариант</option>
-                                </select>
-                            </div>
-                            
-                            <div class="comment-control-row" id="custom-comment-container" style="display: none;">
-                                <label for="custom-comment">Custom Comment:</label>
-                                <textarea id="custom-comment" placeholder="Введите ваш комментарий..."></textarea>
-                            </div>
-                            
-                            <div class="comment-control-row">
-                                <button id="save-comment" class="screenshot-btn">Save Comment</button>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: center; font-size: 12px; margin-top: 5px;">
-                            Editing Marker <span id="selected-annotation-number">1</span>
-                        </div>
-                    </div>
-                    
-                    <div class="annotation-buttons">
-                        <button id="clear-annotations" class="screenshot-btn">Clear All Markers</button>
-                        <button id="delete-selected-annotation" class="screenshot-btn">Delete Selected</button>
-                    </div>
-                    
-                    <div class="annotation-list" id="annotation-list">
-                        <!-- Annotation items will be added here dynamically -->
-                    </div>
-                    
-                    <p style="font-size: 12px; text-align: center; margin-top: 10px;">
-                        Click on the image to add markers. Drag to move markers.<br>
-                        Click on a marker in the list to select and edit it.
-                    </p>
-                </div>
-                
-                <div class="screenshot-image-container">
-                    <div class="annotation-canvas-container">
-                        <img id="screenshot-image" src="" alt="Screenshot">
-                        <canvas id="annotation-canvas"></canvas>
-                    </div>
-                </div>
-                
-                <div class="screenshot-buttons">
-                    <button id="download-annotated-screenshot" class="screenshot-btn">Download with Markers & Comments</button>
-                    <button id="close-preview">Close</button>
-                </div>
             </div>
         </div>
 
@@ -726,20 +437,20 @@
     <script>
         // ==================== URL PARAMETERS SYSTEM ====================
         
-        function getModelUrlFromParams() {
+        function getModelIdFromParams() {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('model');
         }
         
-        function createShareUrl(modelUrl) {
+        function createShareUrl(modelId) {
             const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?model=${encodeURIComponent(modelUrl)}`;
+            return `${baseUrl}?model=${modelId}`;
         }
         
         function updateShareUrlDisplay() {
             const shareUrlElement = document.getElementById('share-url');
-            if (currentModelFileUrl) {
-                const shareUrl = createShareUrl(currentModelFileUrl);
+            if (currentModelId) {
+                const shareUrl = createShareUrl(currentModelId);
                 shareUrlElement.textContent = shareUrl;
                 shareUrlElement.style.color = '#4cc9f0';
             } else {
@@ -768,7 +479,7 @@
         }
         
         function createNewShareUrl() {
-            if (currentModelFileUrl) {
+            if (currentModelId) {
                 updateShareUrlDisplay();
                 copyShareUrl();
             } else {
@@ -779,7 +490,7 @@
         // ==================== CLIENT MODE DETECTION ====================
         
         function isClientMode() {
-            return getModelUrlFromParams() !== null;
+            return getModelIdFromParams() !== null;
         }
         
         function enableClientMode() {
@@ -788,9 +499,40 @@
             document.querySelector('.subtitle').textContent = 'View and interact with 3D models';
         }
         
+        // ==================== MODEL STORAGE SYSTEM ====================
+        
+        // In a real application, this would be a server-side API
+        // For this demo, we'll use localStorage to simulate a database
+        const modelStorage = {
+            // Generate a unique ID for the model
+            generateId: function() {
+                return 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            },
+            
+            // Save model data to localStorage
+            saveModel: function(modelData) {
+                const modelId = this.generateId();
+                localStorage.setItem('model_' + modelId, JSON.stringify(modelData));
+                return modelId;
+            },
+            
+            // Load model data from localStorage
+            loadModel: function(modelId) {
+                const modelData = localStorage.getItem('model_' + modelId);
+                return modelData ? JSON.parse(modelData) : null;
+            },
+            
+            // Get model URL from ID
+            getModelUrl: function(modelId) {
+                const modelData = this.loadModel(modelId);
+                return modelData ? modelData.url : null;
+            }
+        };
+        
         // ==================== MAIN 3D VIEWER CODE ====================
         
         let currentModel = null;
+        let currentModelId = null;
         let currentModelFileUrl = null;
         let gridVisible = true;
         let axesVisible = true;
@@ -801,7 +543,6 @@
         let currentMaterials = [];
         let currentMaterialType = 'phong';
         let gridHelper, axesHelper;
-        let currentScreenshotUrl = null;
         
         // Initialize Three.js scene
         const scene = new THREE.Scene();
@@ -958,7 +699,7 @@
             updateStatus(`✓ Model loaded successfully!`, false);
         }
         
-        // ==================== MODEL LOADING - FIXED VERSION ====================
+        // ==================== MODEL LOADING ====================
         
         function loadModelFromURL(url) {
             return new Promise((resolve, reject) => {
@@ -1038,10 +779,14 @@
             if (urlLower.includes('.obj')) return 'obj';
             
             // Try to determine from URL parameters or path
-            const path = new URL(url).pathname;
-            if (path.includes('.glb') || path.includes('.gltf')) return 'gltf';
-            if (path.includes('.stl')) return 'stl';
-            if (path.includes('.obj')) return 'obj';
+            try {
+                const path = new URL(url).pathname;
+                if (path.includes('.glb') || path.includes('.gltf')) return 'gltf';
+                if (path.includes('.stl')) return 'stl';
+                if (path.includes('.obj')) return 'obj';
+            } catch (e) {
+                // Invalid URL, continue with unknown type
+            }
             
             return 'unknown';
         }
@@ -1056,7 +801,6 @@
                         const model = gltf.scene;
                         setupModel(model);
                         currentModelFileUrl = url;
-                        updateShareUrlDisplay();
                         resolve(model);
                     },
                     function(xhr) {
@@ -1087,7 +831,6 @@
                             const mesh = new THREE.Mesh(geometry, material);
                             setupModel(mesh);
                             currentModelFileUrl = url;
-                            updateShareUrlDisplay();
                             resolve(mesh);
                         } catch (error) {
                             reject(new Error("Failed to parse STL file: " + error.message));
@@ -1122,7 +865,6 @@
                             
                             setupModel(model);
                             currentModelFileUrl = url;
-                            updateShareUrlDisplay();
                             resolve(model);
                         } catch (error) {
                             reject(new Error("Failed to parse OBJ file: " + error.message));
@@ -1139,30 +881,73 @@
             const testUrl = "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf";
             updateStatus("Loading test model...", false);
             loadModelFromURL(testUrl)
+                .then(() => {
+                    // Store test model with a fixed ID for sharing
+                    currentModelId = 'test_model';
+                    updateShareUrlDisplay();
+                })
                 .catch(error => {
                     updateStatus("Test model failed. Try loading a local file.", true);
                 });
         }
         
-        // Auto-load from URL parameters - FIXED VERSION
-        window.addEventListener('load', function() {
-            const modelUrlFromParams = getModelUrlFromParams();
+        // Upload current model to storage
+        function uploadCurrentModel() {
+            if (!currentModelFileUrl) {
+                updateStatus("No model loaded to upload", true);
+                return;
+            }
             
-            if (modelUrlFromParams) {
+            updateStatus("Uploading model...", false);
+            
+            // In a real application, this would upload to a server
+            // For this demo, we'll simulate by storing the URL
+            const modelData = {
+                url: currentModelFileUrl,
+                timestamp: new Date().toISOString(),
+                name: currentModelFileUrl.split('/').pop() || '3D Model'
+            };
+            
+            // Save to our simulated storage
+            currentModelId = modelStorage.saveModel(modelData);
+            updateShareUrlDisplay();
+            updateStatus("✓ Model uploaded successfully! Share URL created.", false);
+        }
+        
+        // Load model from storage by ID
+        function loadModelFromStorage(modelId) {
+            const modelData = modelStorage.loadModel(modelId);
+            if (!modelData) {
+                updateStatus("Model not found in storage", true);
+                return Promise.reject(new Error("Model not found"));
+            }
+            
+            return loadModelFromURL(modelData.url)
+                .then(model => {
+                    currentModelId = modelId;
+                    return model;
+                });
+        }
+        
+        // Auto-load from URL parameters
+        window.addEventListener('load', function() {
+            const modelIdFromParams = getModelIdFromParams();
+            
+            if (modelIdFromParams) {
                 // Enable client mode if URL has model parameter
                 enableClientMode();
                 updateStatus("Loading your model...", false);
                 
                 // Use setTimeout to ensure everything is loaded
                 setTimeout(() => {
-                    console.log("Auto-loading model from URL:", modelUrlFromParams);
-                    loadModelFromURL(modelUrlFromParams)
+                    console.log("Auto-loading model from ID:", modelIdFromParams);
+                    loadModelFromStorage(modelIdFromParams)
                         .then(() => {
-                            console.log("Model loaded successfully from URL parameters");
+                            console.log("Model loaded successfully from storage");
                         })
                         .catch(error => {
-                            console.error("Failed to load model from URL:", error);
-                            updateStatus("Failed to load model from URL. Please check the link.", true);
+                            console.error("Failed to load model from storage:", error);
+                            updateStatus("Failed to load model. Please check the link.", true);
                         });
                 }, 500);
             } else {
@@ -1181,6 +966,11 @@
                 const url = document.getElementById('model-url').value.trim();
                 if (url) {
                     loadModelFromURL(url)
+                        .then(() => {
+                            // Clear the model ID since this is a direct URL load
+                            currentModelId = null;
+                            updateShareUrlDisplay();
+                        })
                         .catch(error => {
                             updateStatus(`Failed to load from URL: ${error.message}`, true);
                         });
@@ -1190,6 +980,8 @@
             });
             
             document.getElementById('test-model').addEventListener('click', loadTestModel);
+            
+            document.getElementById('upload-model').addEventListener('click', uploadCurrentModel);
             
             document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
             document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
@@ -1218,6 +1010,8 @@
                         const model = gltf.scene;
                         setupModel(model);
                         currentModelFileUrl = objectUrl;
+                        // Clear the model ID since this is a local file
+                        currentModelId = null;
                         updateShareUrlDisplay();
                         URL.revokeObjectURL(objectUrl);
                     },
@@ -1240,6 +1034,8 @@
                         const mesh = new THREE.Mesh(geometry, material);
                         setupModel(mesh);
                         currentModelFileUrl = objectUrl;
+                        // Clear the model ID since this is a local file
+                        currentModelId = null;
                         updateShareUrlDisplay();
                     } catch (error) {
                         updateStatus(`Error loading STL: ${error.message}`, true);
@@ -1266,6 +1062,8 @@
                         });
                         setupModel(model);
                         currentModelFileUrl = objectUrl;
+                        // Clear the model ID since this is a local file
+                        currentModelId = null;
                         updateShareUrlDisplay();
                     } catch (error) {
                         updateStatus(`Error loading OBJ: ${error.message}`, true);
