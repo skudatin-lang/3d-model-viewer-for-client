@@ -723,10 +723,8 @@
         
         function updateShareUrlDisplay() {
             const shareUrlElement = document.getElementById('share-url');
-            const currentModelUrl = getModelUrlFromParams();
-            
-            if (currentModelUrl) {
-                const shareUrl = createShareUrl(currentModelUrl);
+            if (currentModelFileUrl) {
+                const shareUrl = createShareUrl(currentModelFileUrl);
                 shareUrlElement.textContent = shareUrl;
                 shareUrlElement.style.color = '#4cc9f0';
             } else {
@@ -756,11 +754,7 @@
         
         function createNewShareUrl() {
             if (currentModelFileUrl) {
-                const shareUrl = createShareUrl(currentModelFileUrl);
-                const shareUrlElement = document.getElementById('share-url');
-                shareUrlElement.textContent = shareUrl;
-                shareUrlElement.style.color = '#4cc9f0';
-                updateStatus('New share URL created!', false);
+                updateShareUrlDisplay();
                 copyShareUrl();
             } else {
                 updateStatus('No model loaded to share', true);
@@ -781,27 +775,6 @@
         let currentMaterialType = 'phong';
         let gridHelper, axesHelper;
         let currentScreenshotUrl = null;
-        
-        // Annotation variables
-        let annotations = [];
-        let annotationCounter = 1;
-        let defaultAnnotationRadius = 20;
-        let selectedAnnotation = null;
-        let isDraggingAnnotation = false;
-        let draggedAnnotation = null;
-        let annotationCanvas, annotationCtx;
-        let screenshotImg;
-        
-        // Comment options
-        const commentOptions = {
-            "make_more_convex": "Сделать более выпуклым",
-            "make_more_concave": "Сделать более вдавленным",
-            "make_narrower_width": "Сделать уже по ширине",
-            "make_wider_width": "Сделать шире по ширине",
-            "make_narrower_height": "Сделать уже по высоте",
-            "make_wider_height": "Сделать шире по высоте",
-            "custom": "Свой вариант"
-        };
         
         // Initialize Three.js scene
         const scene = new THREE.Scene();
@@ -919,6 +892,45 @@
             });
         }
         
+        function setupModel(model) {
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            // Apply material
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    const newMaterial = createMaterial(currentMaterialType, null, wireframeVisible);
+                    child.material = newMaterial;
+                }
+            });
+            
+            // Center model
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            model.position.x = -center.x;
+            model.position.y = -center.y;
+            model.position.z = -center.z;
+            
+            currentModel = model;
+            scene.add(currentModel);
+            storeOriginalMaterials(currentModel);
+            
+            // Adjust camera
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+            
+            camera.position.set(0, 0, cameraZ * 1.5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            
+            showLoading(false);
+            updateStatus(`✓ Model loaded successfully!`, false);
+        }
+        
         // ==================== MODEL LOADING - FIXED VERSION ====================
         
         function loadModelFromURL(url) {
@@ -932,51 +944,31 @@
                     currentModel = null;
                 }
                 
+                const fileExtension = url.toLowerCase().split('.').pop();
+                console.log("Loading URL:", url, "File extension:", fileExtension);
+                
+                if (fileExtension === 'stl') {
+                    loadSTLFromURL(url).then(resolve).catch(reject);
+                } else if (fileExtension === 'obj') {
+                    loadOBJFromURL(url).then(resolve).catch(reject);
+                } else {
+                    // Default to GLTF/GLB loader
+                    loadGLBFromURL(url).then(resolve).catch(reject);
+                }
+            });
+        }
+        
+        function loadGLBFromURL(url) {
+            return new Promise((resolve, reject) => {
                 const loader = new THREE.GLTFLoader();
                 
                 loader.load(
                     url,
                     function(gltf) {
                         const model = gltf.scene;
-                        
-                        // Apply material
-                        model.traverse((child) => {
-                            if (child.isMesh) {
-                                const newMaterial = createMaterial(currentMaterialType, null, wireframeVisible);
-                                child.material = newMaterial;
-                            }
-                        });
-                        
-                        // Center model
-                        const box = new THREE.Box3().setFromObject(model);
-                        const center = box.getCenter(new THREE.Vector3());
-                        const size = box.getSize(new THREE.Vector3());
-                        
-                        model.position.x = -center.x;
-                        model.position.y = -center.y;
-                        model.position.z = -center.z;
-                        
-                        currentModel = model;
-                        scene.add(currentModel);
-                        
-                        storeOriginalMaterials(currentModel);
-                        
-                        // Adjust camera
-                        const maxDim = Math.max(size.x, size.y, size.z);
-                        const fov = camera.fov * (Math.PI / 180);
-                        let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-                        
-                        camera.position.set(0, 0, cameraZ * 1.5);
-                        controls.target.set(0, 0, 0);
-                        controls.update();
-                        
-                        // Store URL for sharing
+                        setupModel(model);
                         currentModelFileUrl = url;
-                        
-                        showLoading(false);
-                        updateStatus(`✓ Model loaded successfully!`, false);
                         updateShareUrlDisplay();
-                        
                         resolve(model);
                     },
                     function(xhr) {
@@ -984,12 +976,73 @@
                         document.getElementById('progress').textContent = percent + '%';
                     },
                     function(error) {
-                        console.error("Model load error:", error);
-                        showLoading(false);
-                        updateStatus(`✗ Failed to load model: ${error.message}`, true);
-                        reject(error);
+                        console.error("GLTF load error:", error);
+                        reject(new Error("Failed to load GLB/GLTF file"));
                     }
                 );
+            });
+        }
+        
+        function loadSTLFromURL(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.STLLoader();
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.arrayBuffer();
+                    })
+                    .then(data => {
+                        try {
+                            const geometry = loader.parse(data);
+                            const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                            const mesh = new THREE.Mesh(geometry, material);
+                            setupModel(mesh);
+                            currentModelFileUrl = url;
+                            updateShareUrlDisplay();
+                            resolve(mesh);
+                        } catch (error) {
+                            reject(new Error("Failed to parse STL file"));
+                        }
+                    })
+                    .catch(error => {
+                        reject(new Error("Failed to fetch STL file"));
+                    });
+            });
+        }
+        
+        function loadOBJFromURL(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.text();
+                    })
+                    .then(data => {
+                        try {
+                            const model = loader.parse(data);
+                            
+                            // Apply material to all meshes
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                                    child.material = material;
+                                }
+                            });
+                            
+                            setupModel(model);
+                            currentModelFileUrl = url;
+                            updateShareUrlDisplay();
+                            resolve(model);
+                        } catch (error) {
+                            reject(new Error("Failed to parse OBJ file"));
+                        }
+                    })
+                    .catch(error => {
+                        reject(new Error("Failed to fetch OBJ file"));
+                    });
             });
         }
         
@@ -1007,10 +1060,11 @@
         window.addEventListener('load', function() {
             const modelUrlFromParams = getModelUrlFromParams();
             if (modelUrlFromParams) {
+                updateStatus("Loading model from URL parameters...", false);
                 setTimeout(() => {
                     loadModelFromURL(modelUrlFromParams)
                         .catch(error => {
-                            console.log("Auto-load from URL params failed");
+                            updateStatus("Failed to load model from URL parameters", true);
                         });
                 }, 1000);
             }
@@ -1022,7 +1076,10 @@
         document.getElementById('load-url-model').addEventListener('click', function() {
             const url = document.getElementById('model-url').value.trim();
             if (url) {
-                loadModelFromURL(url);
+                loadModelFromURL(url)
+                    .catch(error => {
+                        updateStatus(`Failed to load from URL: ${error.message}`, true);
+                    });
             } else {
                 updateStatus("Please enter a valid URL", true);
             }
@@ -1065,52 +1122,64 @@
                         document.getElementById('progress').textContent = percent + '%';
                     },
                     function(error) {
-                        updateStatus(`Error loading file: ${error.message}`, true);
+                        updateStatus(`Error loading GLB/GLTF: ${error.message}`, true);
                         showLoading(false);
                         URL.revokeObjectURL(objectUrl);
                     }
                 );
+            } else if (fileExtension === 'stl') {
+                const loader = new THREE.STLLoader();
+                reader.onload = function(e) {
+                    try {
+                        const geometry = loader.parse(e.target.result);
+                        const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        setupModel(mesh);
+                        currentModelFileUrl = objectUrl;
+                        updateShareUrlDisplay();
+                    } catch (error) {
+                        updateStatus(`Error loading STL: ${error.message}`, true);
+                        showLoading(false);
+                    }
+                    URL.revokeObjectURL(objectUrl);
+                };
+                reader.onerror = () => {
+                    updateStatus("Error reading STL file", true);
+                    showLoading(false);
+                    URL.revokeObjectURL(objectUrl);
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (fileExtension === 'obj') {
+                const loader = new THREE.OBJLoader();
+                reader.onload = function(e) {
+                    try {
+                        const model = loader.parse(e.target.result);
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const material = createMaterial(currentMaterialType, null, wireframeVisible);
+                                child.material = material;
+                            }
+                        });
+                        setupModel(model);
+                        currentModelFileUrl = objectUrl;
+                        updateShareUrlDisplay();
+                    } catch (error) {
+                        updateStatus(`Error loading OBJ: ${error.message}`, true);
+                        showLoading(false);
+                    }
+                    URL.revokeObjectURL(objectUrl);
+                };
+                reader.onerror = () => {
+                    updateStatus("Error reading OBJ file", true);
+                    showLoading(false);
+                    URL.revokeObjectURL(objectUrl);
+                };
+                reader.readAsText(file);
             } else {
-                updateStatus("Unsupported file format for local files", true);
+                updateStatus("Unsupported file format", true);
                 showLoading(false);
                 URL.revokeObjectURL(objectUrl);
             }
-        }
-        
-        function setupModel(model) {
-            if (currentModel) {
-                scene.remove(currentModel);
-            }
-            
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    const newMaterial = createMaterial(currentMaterialType, null, wireframeVisible);
-                    child.material = newMaterial;
-                }
-            });
-            
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            
-            model.position.x = -center.x;
-            model.position.y = -center.y;
-            model.position.z = -center.z;
-            
-            currentModel = model;
-            scene.add(currentModel);
-            storeOriginalMaterials(currentModel);
-            
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const fov = camera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-            
-            camera.position.set(0, 0, cameraZ * 1.5);
-            controls.target.set(0, 0, 0);
-            controls.update();
-            
-            showLoading(false);
-            updateStatus(`✓ Local file loaded successfully!`, false);
         }
         
         // Material controls
@@ -1129,9 +1198,6 @@
                 updateStatus(`Material changed to: ${currentMaterialType}`, false);
             });
         });
-        
-        // [ОСТАЛЬНЫЕ СЛУШАТЕЛИ СОБЫТИЙ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ]
-        // ... остальной код для управления видом, скриншотами, аннотациями и т.д.
         
         // Basic controls
         document.getElementById('toggle-wireframe').addEventListener('click', function() {
