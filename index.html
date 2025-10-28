@@ -471,6 +471,12 @@
             transform: scale(1.1);
         }
         
+        .client-mode .file-input-container,
+        .client-mode .url-input-container,
+        .client-mode #test-model {
+            display: none !important;
+        }
+        
         @media (max-width: 768px) {
             .viewer-container {
                 flex-direction: column;
@@ -761,6 +767,18 @@
             }
         }
         
+        // ==================== CLIENT MODE DETECTION ====================
+        
+        function isClientMode() {
+            return getModelUrlFromParams() !== null;
+        }
+        
+        function enableClientMode() {
+            document.body.classList.add('client-mode');
+            document.querySelector('h1').textContent = '3D Model Viewer';
+            document.querySelector('.subtitle').textContent = 'View and interact with 3D models';
+        }
+        
         // ==================== MAIN 3D VIEWER CODE ====================
         
         let currentModel = null;
@@ -947,13 +965,23 @@
                 const fileExtension = url.toLowerCase().split('.').pop();
                 console.log("Loading URL:", url, "File extension:", fileExtension);
                 
-                if (fileExtension === 'stl') {
-                    loadSTLFromURL(url).then(resolve).catch(reject);
-                } else if (fileExtension === 'obj') {
-                    loadOBJFromURL(url).then(resolve).catch(reject);
+                // Handle Google Drive URLs
+                let finalUrl = url;
+                if (url.includes('drive.google.com')) {
+                    const fileId = url.match(/[-\w]{25,}/);
+                    if (fileId) {
+                        finalUrl = `https://drive.google.com/uc?export=download&id=${fileId[0]}`;
+                        console.log("Converted Google Drive URL to:", finalUrl);
+                    }
+                }
+                
+                if (fileExtension === 'stl' || finalUrl.includes('.stl')) {
+                    loadSTLFromURL(finalUrl).then(resolve).catch(reject);
+                } else if (fileExtension === 'obj' || finalUrl.includes('.obj')) {
+                    loadOBJFromURL(finalUrl).then(resolve).catch(reject);
                 } else {
                     // Default to GLTF/GLB loader
-                    loadGLBFromURL(url).then(resolve).catch(reject);
+                    loadGLBFromURL(finalUrl).then(resolve).catch(reject);
                 }
             });
         }
@@ -1059,15 +1087,20 @@
         // Auto-load from URL parameters
         window.addEventListener('load', function() {
             const modelUrlFromParams = getModelUrlFromParams();
+            
             if (modelUrlFromParams) {
-                updateStatus("Loading model from URL parameters...", false);
+                // Enable client mode if URL has model parameter
+                enableClientMode();
+                updateStatus("Loading your model...", false);
+                
                 setTimeout(() => {
                     loadModelFromURL(modelUrlFromParams)
                         .catch(error => {
-                            updateStatus("Failed to load model from URL parameters", true);
+                            updateStatus("Failed to load model from URL. Please check the link.", true);
                         });
                 }, 1000);
             }
+            
             updateShareUrlDisplay();
         });
         
@@ -1090,13 +1123,15 @@
         document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
         document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
         
-        // File loading
-        document.getElementById('file-input').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                loadLocalFile(file);
-            }
-        });
+        // File loading (only in non-client mode)
+        if (!isClientMode()) {
+            document.getElementById('file-input').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    loadLocalFile(file);
+                }
+            });
+        }
         
         function loadLocalFile(file) {
             updateStatus("Loading local file...", false);
