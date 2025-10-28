@@ -471,9 +471,15 @@
             transform: scale(1.1);
         }
         
+        /* Client mode styles */
         .client-mode .file-input-container,
         .client-mode .url-input-container,
-        .client-mode #test-model {
+        .client-mode #test-model,
+        .client-mode .share-section {
+            display: none !important;
+        }
+        
+        .client-mode .control-group:first-child {
             display: none !important;
         }
         
@@ -525,6 +531,7 @@
             </div>
 
             <div id="controls">
+                <!-- This section will be hidden in client mode -->
                 <div class="control-group">
                     <h3>Load Model</h3>
                     <div class="file-input-container">
@@ -544,7 +551,8 @@
                     <button id="test-model" style="background: #ff6b6b;">Load Test Model</button>
                 </div>
 
-                <div class="control-group">
+                <!-- Share section - hidden in client mode -->
+                <div class="control-group share-section">
                     <h3>Share Model</h3>
                     <div class="share-section">
                         <p>Share this model with clients:</p>
@@ -559,6 +567,7 @@
                     </div>
                 </div>
 
+                <!-- These sections remain visible in both modes -->
                 <div class="control-group">
                     <h3>Material Type</h3>
                     <div class="material-control">
@@ -1084,7 +1093,7 @@
                 });
         }
         
-        // Auto-load from URL parameters
+        // Auto-load from URL parameters - FIXED VERSION
         window.addEventListener('load', function() {
             const modelUrlFromParams = getModelUrlFromParams();
             
@@ -1093,12 +1102,21 @@
                 enableClientMode();
                 updateStatus("Loading your model...", false);
                 
+                // Use setTimeout to ensure everything is loaded
                 setTimeout(() => {
+                    console.log("Auto-loading model from URL:", modelUrlFromParams);
                     loadModelFromURL(modelUrlFromParams)
+                        .then(() => {
+                            console.log("Model loaded successfully from URL parameters");
+                        })
                         .catch(error => {
+                            console.error("Failed to load model from URL:", error);
                             updateStatus("Failed to load model from URL. Please check the link.", true);
                         });
-                }, 1000);
+                }, 500);
+            } else {
+                // Regular mode - show loading instructions
+                updateStatus("Ready to load models. Click 'Load Test Model' to start.", false);
             }
             
             updateShareUrlDisplay();
@@ -1106,25 +1124,25 @@
         
         // ==================== EVENT LISTENERS ====================
         
-        document.getElementById('load-url-model').addEventListener('click', function() {
-            const url = document.getElementById('model-url').value.trim();
-            if (url) {
-                loadModelFromURL(url)
-                    .catch(error => {
-                        updateStatus(`Failed to load from URL: ${error.message}`, true);
-                    });
-            } else {
-                updateStatus("Please enter a valid URL", true);
-            }
-        });
-        
-        document.getElementById('test-model').addEventListener('click', loadTestModel);
-        
-        document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
-        document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
-        
-        // File loading (only in non-client mode)
+        // Only add these event listeners in non-client mode
         if (!isClientMode()) {
+            document.getElementById('load-url-model').addEventListener('click', function() {
+                const url = document.getElementById('model-url').value.trim();
+                if (url) {
+                    loadModelFromURL(url)
+                        .catch(error => {
+                            updateStatus(`Failed to load from URL: ${error.message}`, true);
+                        });
+                } else {
+                    updateStatus("Please enter a valid URL", true);
+                }
+            });
+            
+            document.getElementById('test-model').addEventListener('click', loadTestModel);
+            
+            document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
+            document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
+            
             document.getElementById('file-input').addEventListener('change', function(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -1217,7 +1235,7 @@
             }
         }
         
-        // Material controls
+        // Material controls (available in both modes)
         document.querySelectorAll('.material-btn').forEach(button => {
             button.addEventListener('click', function() {
                 currentMaterialType = this.dataset.material;
@@ -1234,7 +1252,7 @@
             });
         });
         
-        // Basic controls
+        // Basic controls (available in both modes)
         document.getElementById('toggle-wireframe').addEventListener('click', function() {
             wireframeVisible = !wireframeVisible;
             currentMaterials.forEach(item => {
