@@ -260,25 +260,20 @@
             font-size: 12px;
         }
         
-        .upload-section {
-            background: rgba(50, 50, 60, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        .upload-info {
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
             font-size: 12px;
-            margin-top: 10px;
-            text-align: center;
-            opacity: 0.8;
         }
         
         /* Client mode styles */
         .client-mode .file-input-container,
         .client-mode .url-input-container,
         .client-mode #test-model,
-        .client-mode .share-section,
-        .client-mode .upload-section {
+        .client-mode .share-section {
             display: none !important;
         }
         
@@ -318,31 +313,25 @@
                 <!-- This section will be hidden in client mode -->
                 <div class="control-group">
                     <h3>Load Model</h3>
-                    <div class="file-input-container">
-                        <label for="file-input" class="file-input-label">
-                            Load Local File
-                        </label>
-                        <input type="file" id="file-input" accept=".stl,.glb,.obj">
-                        <p class="format-info">Supports: STL, GLB, OBJ formats</p>
+                    <div class="warning">
+                        <strong>Important:</strong> For sharing with clients, use only public URLs (Google Drive, Dropbox, etc.)
                     </div>
                     
                     <div class="url-input-container">
                         <input type="text" id="model-url" class="url-input" 
-                               placeholder="Paste Google Drive or direct URL">
+                               placeholder="Paste Google Drive, Dropbox or direct URL">
                         <button id="load-url-model">Load from URL</button>
                     </div>
                     
-                    <button id="test-model" style="background: #ff6b6b;">Load Test Model</button>
-                </div>
-
-                <!-- Upload section - for storing models on server -->
-                <div class="control-group upload-section">
-                    <h3>Upload & Share Model</h3>
-                    <div class="upload-section">
-                        <p>Upload your model to generate a shareable link:</p>
-                        <button id="upload-model" class="screenshot-btn">Upload Current Model</button>
-                        <p class="upload-info">This will save your model and generate a permanent share URL</p>
+                    <div class="file-input-container">
+                        <label for="file-input" class="file-input-label">
+                            Load Local File (Preview Only)
+                        </label>
+                        <input type="file" id="file-input" accept=".stl,.glb,.obj">
+                        <p class="format-info">Local files cannot be shared with clients</p>
                     </div>
+                    
+                    <button id="test-model" style="background: #ff6b6b;">Load Test Model</button>
                 </div>
 
                 <!-- Share section - hidden in client mode -->
@@ -355,7 +344,6 @@
                         </div>
                         <div class="share-buttons">
                             <button id="copy-share-url" class="screenshot-btn">Copy Share URL</button>
-                            <button id="new-share-url" class="screenshot-btn">Create New Share URL</button>
                         </div>
                         <p class="format-info">Send this URL to clients - they will see the same model</p>
                     </div>
@@ -379,7 +367,7 @@
                         </div>
                         <div class="material-prop">
                             <label for="roughness">Roughness:</label>
-                            <input type="range" id="roughness" min="0" max="1" step="0.1" value="0.5">
+                        <input type="range" id="roughness" min="0" max="1" step="0.1" value="0.5">
                         </div>
                         <div class="material-prop">
                             <label for="shininess">Shininess:</label>
@@ -419,7 +407,7 @@
                     <button id="bg-gradient">Gradient BG</button>
                 </div>
 
-                <div class="status" id="status">Ready to load models. Click "Load Test Model" to start.</div>
+                <div class="status" id="status">Ready to load models. Enter a public URL to share with clients.</div>
             </div>
         </div>
 
@@ -437,24 +425,24 @@
     <script>
         // ==================== URL PARAMETERS SYSTEM ====================
         
-        function getModelIdFromParams() {
+        function getModelUrlFromParams() {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('model');
         }
         
-        function createShareUrl(modelId) {
+        function createShareUrl(modelUrl) {
             const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?model=${modelId}`;
+            return `${baseUrl}?model=${encodeURIComponent(modelUrl)}`;
         }
         
         function updateShareUrlDisplay() {
             const shareUrlElement = document.getElementById('share-url');
-            if (currentModelId) {
-                const shareUrl = createShareUrl(currentModelId);
+            if (currentModelFileUrl && isValidShareableUrl(currentModelFileUrl)) {
+                const shareUrl = createShareUrl(currentModelFileUrl);
                 shareUrlElement.textContent = shareUrl;
                 shareUrlElement.style.color = '#4cc9f0';
             } else {
-                shareUrlElement.textContent = 'No model loaded';
+                shareUrlElement.textContent = 'No shareable model loaded';
                 shareUrlElement.style.color = '#ff6b6b';
             }
         }
@@ -463,7 +451,7 @@
             const shareUrlElement = document.getElementById('share-url');
             const shareUrl = shareUrlElement.textContent;
             
-            if (shareUrl !== 'No model loaded') {
+            if (shareUrl !== 'No shareable model loaded') {
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     updateStatus('Share URL copied to clipboard!', false);
                 }).catch(() => {
@@ -478,19 +466,10 @@
             }
         }
         
-        function createNewShareUrl() {
-            if (currentModelId) {
-                updateShareUrlDisplay();
-                copyShareUrl();
-            } else {
-                updateStatus('No model loaded to share', true);
-            }
-        }
-        
         // ==================== CLIENT MODE DETECTION ====================
         
         function isClientMode() {
-            return getModelIdFromParams() !== null;
+            return getModelUrlFromParams() !== null;
         }
         
         function enableClientMode() {
@@ -499,40 +478,23 @@
             document.querySelector('.subtitle').textContent = 'View and interact with 3D models';
         }
         
-        // ==================== MODEL STORAGE SYSTEM ====================
+        // ==================== VALIDATION FUNCTIONS ====================
         
-        // In a real application, this would be a server-side API
-        // For this demo, we'll use localStorage to simulate a database
-        const modelStorage = {
-            // Generate a unique ID for the model
-            generateId: function() {
-                return 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            },
-            
-            // Save model data to localStorage
-            saveModel: function(modelData) {
-                const modelId = this.generateId();
-                localStorage.setItem('model_' + modelId, JSON.stringify(modelData));
-                return modelId;
-            },
-            
-            // Load model data from localStorage
-            loadModel: function(modelId) {
-                const modelData = localStorage.getItem('model_' + modelId);
-                return modelData ? JSON.parse(modelData) : null;
-            },
-            
-            // Get model URL from ID
-            getModelUrl: function(modelId) {
-                const modelData = this.loadModel(modelId);
-                return modelData ? modelData.url : null;
-            }
-        };
+        function isValidShareableUrl(url) {
+            // Check if URL is shareable (not a blob or local file)
+            return url && 
+                   !url.startsWith('blob:') && 
+                   !url.startsWith('file:') &&
+                   (url.startsWith('http://') || url.startsWith('https://'));
+        }
+        
+        function isGoogleDriveUrl(url) {
+            return url.includes('drive.google.com');
+        }
         
         // ==================== MAIN 3D VIEWER CODE ====================
         
         let currentModel = null;
-        let currentModelId = null;
         let currentModelFileUrl = null;
         let gridVisible = true;
         let axesVisible = true;
@@ -743,7 +705,7 @@
         }
         
         function processGoogleDriveUrl(url) {
-            if (!url.includes('drive.google.com')) return url;
+            if (!isGoogleDriveUrl(url)) return url;
             
             // Handle different Google Drive URL formats
             let fileId = null;
@@ -801,6 +763,7 @@
                         const model = gltf.scene;
                         setupModel(model);
                         currentModelFileUrl = url;
+                        updateShareUrlDisplay();
                         resolve(model);
                     },
                     function(xhr) {
@@ -831,6 +794,7 @@
                             const mesh = new THREE.Mesh(geometry, material);
                             setupModel(mesh);
                             currentModelFileUrl = url;
+                            updateShareUrlDisplay();
                             resolve(mesh);
                         } catch (error) {
                             reject(new Error("Failed to parse STL file: " + error.message));
@@ -865,6 +829,7 @@
                             
                             setupModel(model);
                             currentModelFileUrl = url;
+                            updateShareUrlDisplay();
                             resolve(model);
                         } catch (error) {
                             reject(new Error("Failed to parse OBJ file: " + error.message));
@@ -881,78 +846,35 @@
             const testUrl = "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf";
             updateStatus("Loading test model...", false);
             loadModelFromURL(testUrl)
-                .then(() => {
-                    // Store test model with a fixed ID for sharing
-                    currentModelId = 'test_model';
-                    updateShareUrlDisplay();
-                })
                 .catch(error => {
                     updateStatus("Test model failed. Try loading a local file.", true);
                 });
         }
         
-        // Upload current model to storage
-        function uploadCurrentModel() {
-            if (!currentModelFileUrl) {
-                updateStatus("No model loaded to upload", true);
-                return;
-            }
-            
-            updateStatus("Uploading model...", false);
-            
-            // In a real application, this would upload to a server
-            // For this demo, we'll simulate by storing the URL
-            const modelData = {
-                url: currentModelFileUrl,
-                timestamp: new Date().toISOString(),
-                name: currentModelFileUrl.split('/').pop() || '3D Model'
-            };
-            
-            // Save to our simulated storage
-            currentModelId = modelStorage.saveModel(modelData);
-            updateShareUrlDisplay();
-            updateStatus("✓ Model uploaded successfully! Share URL created.", false);
-        }
-        
-        // Load model from storage by ID
-        function loadModelFromStorage(modelId) {
-            const modelData = modelStorage.loadModel(modelId);
-            if (!modelData) {
-                updateStatus("Model not found in storage", true);
-                return Promise.reject(new Error("Model not found"));
-            }
-            
-            return loadModelFromURL(modelData.url)
-                .then(model => {
-                    currentModelId = modelId;
-                    return model;
-                });
-        }
-        
         // Auto-load from URL parameters
         window.addEventListener('load', function() {
-            const modelIdFromParams = getModelIdFromParams();
+            const modelUrlFromParams = getModelUrlFromParams();
             
-            if (modelIdFromParams) {
+            if (modelUrlFromParams) {
                 // Enable client mode if URL has model parameter
                 enableClientMode();
                 updateStatus("Loading your model...", false);
                 
                 // Use setTimeout to ensure everything is loaded
                 setTimeout(() => {
-                    console.log("Auto-loading model from ID:", modelIdFromParams);
-                    loadModelFromStorage(modelIdFromParams)
+                    console.log("Auto-loading model from URL:", modelUrlFromParams);
+                    loadModelFromURL(modelUrlFromParams)
                         .then(() => {
-                            console.log("Model loaded successfully from storage");
+                            console.log("Model loaded successfully from URL parameters");
                         })
                         .catch(error => {
-                            console.error("Failed to load model from storage:", error);
-                            updateStatus("Failed to load model. Please check the link.", true);
+                            console.error("Failed to load model from URL:", error);
+                            updateStatus("Failed to load model from URL. Please check the link.", true);
                         });
                 }, 500);
             } else {
                 // Regular mode - show loading instructions
-                updateStatus("Ready to load models. Click 'Load Test Model' to start.", false);
+                updateStatus("Ready to load models. Enter a public URL to share with clients.", false);
             }
             
             updateShareUrlDisplay();
@@ -966,11 +888,6 @@
                 const url = document.getElementById('model-url').value.trim();
                 if (url) {
                     loadModelFromURL(url)
-                        .then(() => {
-                            // Clear the model ID since this is a direct URL load
-                            currentModelId = null;
-                            updateShareUrlDisplay();
-                        })
                         .catch(error => {
                             updateStatus(`Failed to load from URL: ${error.message}`, true);
                         });
@@ -981,10 +898,7 @@
             
             document.getElementById('test-model').addEventListener('click', loadTestModel);
             
-            document.getElementById('upload-model').addEventListener('click', uploadCurrentModel);
-            
             document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
-            document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
             
             document.getElementById('file-input').addEventListener('change', function(event) {
                 const file = event.target.files[0];
@@ -995,7 +909,7 @@
         }
         
         function loadLocalFile(file) {
-            updateStatus("Loading local file...", false);
+            updateStatus("Loading local file (preview only - cannot be shared)...", false);
             showLoading(true);
             
             const reader = new FileReader();
@@ -1009,9 +923,7 @@
                     function(gltf) {
                         const model = gltf.scene;
                         setupModel(model);
-                        currentModelFileUrl = objectUrl;
-                        // Clear the model ID since this is a local file
-                        currentModelId = null;
+                        // Don't set currentModelFileUrl for local files
                         updateShareUrlDisplay();
                         URL.revokeObjectURL(objectUrl);
                     },
@@ -1033,9 +945,7 @@
                         const material = createMaterial(currentMaterialType, null, wireframeVisible);
                         const mesh = new THREE.Mesh(geometry, material);
                         setupModel(mesh);
-                        currentModelFileUrl = objectUrl;
-                        // Clear the model ID since this is a local file
-                        currentModelId = null;
+                        // Don't set currentModelFileUrl for local files
                         updateShareUrlDisplay();
                     } catch (error) {
                         updateStatus(`Error loading STL: ${error.message}`, true);
@@ -1061,9 +971,7 @@
                             }
                         });
                         setupModel(model);
-                        currentModelFileUrl = objectUrl;
-                        // Clear the model ID since this is a local file
-                        currentModelId = null;
+                        // Don't set currentModelFileUrl for local files
                         updateShareUrlDisplay();
                     } catch (error) {
                         updateStatus(`Error loading OBJ: ${error.message}`, true);
