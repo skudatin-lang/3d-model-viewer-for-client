@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer PRO</title>
     <style>
+        /* Все стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -99,6 +100,12 @@
         button:hover {
             background: #3a56d4;
             transform: translateY(-2px);
+        }
+        .direction-btn {
+            background: #7209b7;
+        }
+        .direction-btn:hover {
+            background: #5a08a0;
         }
         .material-btn {
             background: #f72585;
@@ -223,31 +230,7 @@
             text-align: center;
         }
         
-        .share-section {
-            background: rgba(40, 40, 50, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        .share-url {
-            background: rgba(20, 20, 30, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            word-break: break-all;
-            font-size: 12px;
-            margin: 10px 0;
-            border: 1px solid #555;
-        }
-        .share-buttons {
-            display: flex;
-            gap: 5px;
-        }
-        .share-buttons button {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-        }
-        
+        /* UPDATED: Screenshot preview with better scrolling */
         .screenshot-preview {
             position: fixed;
             top: 0;
@@ -309,6 +292,7 @@
             font-size: 0.9rem;
         }
         
+        /* Annotation controls and canvas styles */
         .annotation-controls {
             display: flex;
             flex-direction: column;
@@ -352,6 +336,7 @@
             cursor: crosshair;
         }
         
+        /* Selected annotation styling */
         .annotation-list {
             max-height: 150px;
             overflow-y: auto;
@@ -394,6 +379,7 @@
             opacity: 0.8;
         }
         
+        /* Comment controls */
         .comment-controls {
             margin-top: 10px;
             padding: 10px;
@@ -436,6 +422,7 @@
             margin-left: 5px;
         }
         
+        /* NEW: Close button at top right */
         .close-preview-top {
             position: absolute;
             top: 30px;
@@ -457,17 +444,6 @@
         .close-preview-top:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
-        }
-        
-        /* Client mode styles */
-        .client-mode .file-input-container,
-        .client-mode #test-model,
-        .client-mode .share-section {
-            display: none !important;
-        }
-        
-        .client-mode .control-group:first-child {
-            display: none !important;
         }
         
         @media (max-width: 768px) {
@@ -495,9 +471,6 @@
             .screenshot-buttons button {
                 width: 100%;
             }
-            .share-buttons {
-                flex-direction: column;
-            }
         }
     </style>
 </head>
@@ -505,7 +478,7 @@
     <div class="container">
         <header>
             <h1>3D Model Viewer PRO</h1>
-            <p class="subtitle">Professional 3D model viewer - Share models via URL</p>
+            <p class="subtitle">Professional 3D model viewer with material controls and annotation tools</p>
         </header>
 
         <div class="viewer-container">
@@ -518,37 +491,17 @@
             </div>
 
             <div id="controls">
-                <!-- This section will be hidden in client mode -->
                 <div class="control-group">
-                    <h3>Load Model</h3>
+                    <h3>File Upload</h3>
                     <div class="file-input-container">
                         <label for="file-input" class="file-input-label">
-                            Load Local File
+                            Choose 3D Model File
                         </label>
                         <input type="file" id="file-input" accept=".stl,.glb,.obj">
                         <p class="format-info">Supports: STL, GLB, OBJ formats</p>
                     </div>
-                    
-                    <button id="test-model" style="background: #ff6b6b;">Load Test Model</button>
                 </div>
 
-                <!-- Share section - hidden in client mode -->
-                <div class="control-group share-section">
-                    <h3>Share Model</h3>
-                    <div class="share-section">
-                        <p>Share this model with clients:</p>
-                        <div class="share-url" id="share-url">
-                            No model loaded
-                        </div>
-                        <div class="share-buttons">
-                            <button id="copy-share-url" class="screenshot-btn">Copy Share URL</button>
-                            <button id="new-share-url" class="screenshot-btn">Create New Share URL</button>
-                        </div>
-                        <p class="format-info">Send this URL to clients - they will see the same model</p>
-                    </div>
-                </div>
-
-                <!-- These sections remain visible in both modes -->
                 <div class="control-group">
                     <h3>Material Type</h3>
                     <div class="material-control">
@@ -611,7 +564,7 @@
                     <button id="take-screenshot" class="screenshot-btn">Take Screenshot</button>
                 </div>
 
-                <div class="status" id="status">Ready to load models. Click "Load Test Model" to start.</div>
+                <div class="status" id="status">Ready to load 3D model</div>
             </div>
         </div>
 
@@ -634,6 +587,7 @@
                             <span id="selected-radius-value">20px</span>
                         </div>
                         
+                        <!-- Comment controls for selected annotation -->
                         <div class="comment-controls" id="comment-controls">
                             <div class="comment-control-row">
                                 <label for="comment-type">Comment Type:</label>
@@ -694,7 +648,7 @@
         </div>
 
         <footer>
-            <p>3D Model Viewer PRO | Share models via URL</p>
+            <p>3D Model Viewer PRO | Professional material controls, rendering and annotation tools</p>
         </footer>
     </div>
 
@@ -705,115 +659,8 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
 
     <script>
-        // ==================== MODEL STORAGE SYSTEM ====================
-        
-        // Store model data in localStorage with a unique ID
-        function storeModelData(modelData, fileName) {
-            const modelId = 'model_' + Date.now();
-            const modelInfo = {
-                id: modelId,
-                fileName: fileName,
-                data: modelData,
-                timestamp: Date.now()
-            };
-            
-            localStorage.setItem(modelId, JSON.stringify(modelInfo));
-            return modelId;
-        }
-        
-        function getModelData(modelId) {
-            const modelInfo = localStorage.getItem(modelId);
-            return modelInfo ? JSON.parse(modelInfo) : null;
-        }
-        
-        function clearOldModels() {
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000; // 24 hours
-            
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('model_')) {
-                    try {
-                        const modelInfo = JSON.parse(localStorage.getItem(key));
-                        if (now - modelInfo.timestamp > oneDay) {
-                            localStorage.removeItem(key);
-                        }
-                    } catch (e) {
-                        // Invalid data, remove it
-                        localStorage.removeItem(key);
-                    }
-                }
-            }
-        }
-        
-        // ==================== URL PARAMETERS SYSTEM ====================
-        
-        function getModelIdFromParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('model');
-        }
-        
-        function createShareUrl(modelId) {
-            const baseUrl = window.location.origin + window.location.pathname;
-            return `${baseUrl}?model=${modelId}`;
-        }
-        
-        function updateShareUrlDisplay() {
-            const shareUrlElement = document.getElementById('share-url');
-            if (currentModelId) {
-                const shareUrl = createShareUrl(currentModelId);
-                shareUrlElement.textContent = shareUrl;
-                shareUrlElement.style.color = '#4cc9f0';
-            } else {
-                shareUrlElement.textContent = 'No model loaded';
-                shareUrlElement.style.color = '#ff6b6b';
-            }
-        }
-        
-        function copyShareUrl() {
-            const shareUrlElement = document.getElementById('share-url');
-            const shareUrl = shareUrlElement.textContent;
-            
-            if (shareUrl !== 'No model loaded') {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    updateStatus('Share URL copied to clipboard!', false);
-                }).catch(() => {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = shareUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    updateStatus('Share URL copied to clipboard!', false);
-                });
-            }
-        }
-        
-        function createNewShareUrl() {
-            if (currentModelId) {
-                updateShareUrlDisplay();
-                copyShareUrl();
-            } else {
-                updateStatus('No model loaded to share', true);
-            }
-        }
-        
-        // ==================== CLIENT MODE DETECTION ====================
-        
-        function isClientMode() {
-            return getModelIdFromParams() !== null;
-        }
-        
-        function enableClientMode() {
-            document.body.classList.add('client-mode');
-            document.querySelector('h1').textContent = '3D Model Viewer';
-            document.querySelector('.subtitle').textContent = 'View and interact with 3D models';
-        }
-        
-        // ==================== MAIN 3D VIEWER CODE ====================
-        
+        // Initialize variables
         let currentModel = null;
-        let currentModelId = null;
         let gridVisible = true;
         let axesVisible = true;
         let wireframeVisible = false;
@@ -825,24 +672,47 @@
         let gridHelper, axesHelper;
         let currentScreenshotUrl = null;
         
-        // Initialize Three.js scene
+        // Annotation variables
+        let annotations = [];
+        let annotationCounter = 1;
+        let defaultAnnotationRadius = 20;
+        let selectedAnnotation = null;
+        let isDraggingAnnotation = false;
+        let draggedAnnotation = null;
+        let annotationCanvas, annotationCtx;
+        let screenshotImg;
+        
+        // Comment options mapping
+        const commentOptions = {
+            "make_more_convex": "Сделать более выпуклым",
+            "make_more_concave": "Сделать более вдавленным",
+            "make_narrower_width": "Сделать уже по ширине",
+            "make_wider_width": "Сделать шире по ширине",
+            "make_narrower_height": "Сделать уже по высоте",
+            "make_wider_height": "Сделать шире по высоте",
+            "custom": "Свой вариант"
+        };
+        
+        // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x2c3e50);
         
+        // Camera setup
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(5, 5, 10);
         
         const renderer = new THREE.WebGLRenderer({ 
             canvas: document.getElementById('canvas'), 
             antialias: true,
-            preserveDrawingBuffer: true
+            preserveDrawingBuffer: true // Important for screenshots!
         });
         
+        // Set renderer size
         const container = document.getElementById('canvas-container');
         renderer.setSize(container.offsetWidth, container.offsetHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         
-        // Lighting
+        // Add lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
         
@@ -854,19 +724,24 @@
         directionalLight2.position.set(-10, -10, -10);
         scene.add(directionalLight2);
         
-        // Helpers
+        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
+        directionalLight3.position.set(0, 10, -10);
+        scene.add(directionalLight3);
+        
+        // Add grid helper
         gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
         scene.add(gridHelper);
         
+        // Add axes helper
         axesHelper = new THREE.AxesHelper(10);
         scene.add(axesHelper);
         
-        // Controls
+        // Set up orbit controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         
-        // Window resize
+        // Handle window resize
         window.addEventListener('resize', function() {
             const container = document.getElementById('canvas-container');
             camera.aspect = container.offsetWidth / container.offsetHeight;
@@ -874,48 +749,72 @@
             renderer.setSize(container.offsetWidth, container.offsetHeight);
         });
         
-        // Utility functions
+        // Update status message
         function updateStatus(message, isError) {
             const statusElement = document.getElementById('status');
             statusElement.textContent = message;
-            statusElement.style.color = isError ? '#ff4444' : '#ffffff';
+            if (isError) {
+                statusElement.style.color = '#ff4444';
+            } else {
+                statusElement.style.color = '#ffffff';
+            }
         }
         
+        // Show/hide loading indicator
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
         
+        // Create material based on type and properties
         function createMaterial(type, color, wireframe) {
             const colorValue = color || document.getElementById('model-color').value;
             
             switch(type) {
                 case 'basic':
-                    return new THREE.MeshBasicMaterial({ color: colorValue, wireframe: wireframe });
+                    return new THREE.MeshBasicMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
                 case 'standard':
+                    const metalness = parseFloat(document.getElementById('metalness').value);
+                    const roughness = parseFloat(document.getElementById('roughness').value);
                     return new THREE.MeshStandardMaterial({ 
                         color: colorValue,
-                        metalness: parseFloat(document.getElementById('metalness').value),
-                        roughness: parseFloat(document.getElementById('roughness').value),
+                        metalness: metalness,
+                        roughness: roughness,
                         wireframe: wireframe
                     });
                 case 'phong':
+                    const shininess = parseFloat(document.getElementById('shininess').value);
                     return new THREE.MeshPhongMaterial({ 
                         color: colorValue,
                         specular: 0x111111,
-                        shininess: parseFloat(document.getElementById('shininess').value),
+                        shininess: shininess,
                         wireframe: wireframe
                     });
                 case 'lambert':
-                    return new THREE.MeshLambertMaterial({ color: colorValue, wireframe: wireframe });
+                    return new THREE.MeshLambertMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
                 case 'toon':
-                    return new THREE.MeshToonMaterial({ color: colorValue, wireframe: wireframe });
+                    return new THREE.MeshToonMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
                 case 'normal':
-                    return new THREE.MeshNormalMaterial({ wireframe: wireframe });
+                    return new THREE.MeshNormalMaterial({ 
+                        wireframe: wireframe
+                    });
                 default:
-                    return new THREE.MeshPhongMaterial({ color: colorValue, wireframe: wireframe });
+                    return new THREE.MeshPhongMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
             }
         }
         
+        // Apply material to model
         function applyMaterialToModel() {
             if (!currentModel) return;
             
@@ -926,9 +825,11 @@
                 }
             });
             
+            // Store materials for color control
             storeOriginalMaterials(currentModel);
         }
         
+        // Store original materials for color and wireframe control
         function storeOriginalMaterials(model) {
             currentMaterials = [];
             model.traverse((child) => {
@@ -941,318 +842,839 @@
             });
         }
         
-        function setupModel(model) {
-            if (currentModel) {
-                scene.remove(currentModel);
-            }
+        // Update model color
+        function updateModelColor() {
+            const colorValue = document.getElementById('model-color').value;
             
-            // Apply material
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    const newMaterial = createMaterial(currentMaterialType, null, wireframeVisible);
-                    child.material = newMaterial;
-                }
-            });
-            
-            // Center model
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            
-            model.position.x = -center.x;
-            model.position.y = -center.y;
-            model.position.z = -center.z;
-            
-            currentModel = model;
-            scene.add(currentModel);
-            storeOriginalMaterials(currentModel);
-            
-            // Adjust camera
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const fov = camera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-            
-            camera.position.set(0, 0, cameraZ * 1.5);
-            controls.target.set(0, 0, 0);
-            controls.update();
-            
-            showLoading(false);
-            updateStatus(`✓ Model loaded successfully!`, false);
-        }
-        
-        // ==================== MODEL LOADING ====================
-        
-        function loadModelFromData(modelData, fileName) {
-            return new Promise((resolve, reject) => {
-                updateStatus(`Loading model...`, false);
-                showLoading(true);
-                
-                // Clear previous model
-                if (currentModel) {
-                    scene.remove(currentModel);
-                    currentModel = null;
-                }
-                
-                const fileExtension = fileName.toLowerCase().split('.').pop();
-                console.log("Loading file:", fileName, "File extension:", fileExtension);
-                
-                if (fileExtension === 'stl') {
-                    loadSTLFromData(modelData).then(resolve).catch(reject);
-                } else if (fileExtension === 'obj') {
-                    loadOBJFromData(modelData).then(resolve).catch(reject);
-                } else {
-                    // Default to GLTF/GLB loader
-                    loadGLBFromData(modelData).then(resolve).catch(reject);
+            currentMaterials.forEach(item => {
+                if (item.mesh && item.mesh.material) {
+                    item.mesh.material.color.set(colorValue);
                 }
             });
         }
         
-        function loadGLBFromData(data) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.GLTFLoader();
-                
-                try {
-                    const blob = new Blob([data]);
-                    const url = URL.createObjectURL(blob);
-                    
-                    loader.load(
-                        url,
-                        function(gltf) {
-                            const model = gltf.scene;
-                            setupModel(model);
-                            URL.revokeObjectURL(url);
-                            resolve(model);
-                        },
-                        function(xhr) {
-                            const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                            document.getElementById('progress').textContent = percent + '%';
-                        },
-                        function(error) {
-                            console.error("GLTF load error:", error);
-                            URL.revokeObjectURL(url);
-                            reject(new Error("Failed to load GLB/GLTF file"));
-                        }
-                    );
-                } catch (error) {
-                    reject(new Error("Failed to process GLB/GLTF file"));
-                }
-            });
-        }
-        
-        function loadSTLFromData(data) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.STLLoader();
-                
-                try {
-                    const geometry = loader.parse(data);
-                    const material = createMaterial(currentMaterialType, null, wireframeVisible);
-                    const mesh = new THREE.Mesh(geometry, material);
-                    setupModel(mesh);
-                    resolve(mesh);
-                } catch (error) {
-                    reject(new Error("Failed to parse STL file"));
-                }
-            });
-        }
-        
-        function loadOBJFromData(data) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.OBJLoader();
-                
-                try {
-                    const text = new TextDecoder().decode(data);
-                    const model = loader.parse(text);
-                    
-                    // Apply material to all meshes
-                    model.traverse((child) => {
-                        if (child.isMesh) {
-                            const material = createMaterial(currentMaterialType, null, wireframeVisible);
-                            child.material = material;
-                        }
-                    });
-                    
-                    setupModel(model);
-                    resolve(model);
-                } catch (error) {
-                    reject(new Error("Failed to parse OBJ file"));
-                }
-            });
-        }
-        
-        // Test model function
-        function loadTestModel() {
-            const testUrl = "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf";
-            updateStatus("Loading test model...", false);
-            
-            fetch(testUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.arrayBuffer();
-                })
-                .then(data => {
-                    return loadModelFromData(data, "DamagedHelmet.gltf");
-                })
-                .then(model => {
-                    // Store the test model with a special ID
-                    currentModelId = storeModelData(data, "DamagedHelmet.gltf");
-                    updateShareUrlDisplay();
-                })
-                .catch(error => {
-                    updateStatus("Test model failed. Try loading a local file.", true);
-                });
-        }
-        
-        // Auto-load from URL parameters
-        window.addEventListener('load', function() {
-            // Clear old models on startup
-            clearOldModels();
-            
-            const modelIdFromParams = getModelIdFromParams();
-            
-            if (modelIdFromParams) {
-                // Enable client mode if URL has model parameter
-                enableClientMode();
-                updateStatus("Loading your model...", false);
-                
-                // Use setTimeout to ensure everything is loaded
-                setTimeout(() => {
-                    console.log("Auto-loading model from ID:", modelIdFromParams);
-                    
-                    const modelInfo = getModelData(modelIdFromParams);
-                    if (modelInfo) {
-                        currentModelId = modelIdFromParams;
-                        loadModelFromData(modelInfo.data, modelInfo.fileName)
-                            .then(() => {
-                                console.log("Model loaded successfully from storage");
-                            })
-                            .catch(error => {
-                                console.error("Failed to load model from storage:", error);
-                                updateStatus("Failed to load model. Please check the link.", true);
-                            });
-                    } else {
-                        updateStatus("Model not found. The link may have expired.", true);
-                    }
-                }, 500);
-            } else {
-                // Regular mode - show loading instructions
-                updateStatus("Ready to load models. Click 'Load Test Model' to start.", false);
-            }
-            
-            updateShareUrlDisplay();
-        });
-        
-        // ==================== EVENT LISTENERS ====================
-        
-        // Only add these event listeners in non-client mode
-        if (!isClientMode()) {
-            document.getElementById('test-model').addEventListener('click', loadTestModel);
-            
-            document.getElementById('copy-share-url').addEventListener('click', copyShareUrl);
-            document.getElementById('new-share-url').addEventListener('click', createNewShareUrl);
-            
-            document.getElementById('file-input').addEventListener('change', function(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    loadLocalFile(file);
-                }
-            });
-        }
-        
-        function loadLocalFile(file) {
-            updateStatus("Loading local file...", false);
-            showLoading(true);
-            
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = e.target.result;
-                    
-                    // Store the model data
-                    currentModelId = storeModelData(data, file.name);
-                    
-                    // Load the model
-                    loadModelFromData(data, file.name)
-                        .then(() => {
-                            updateShareUrlDisplay();
-                        })
-                        .catch(error => {
-                            updateStatus(`Error loading file: ${error.message}`, true);
-                            showLoading(false);
-                        });
-                } catch (error) {
-                    updateStatus(`Error reading file: ${error.message}`, true);
-                    showLoading(false);
-                }
-            };
-            
-            reader.onerror = () => {
-                updateStatus("Error reading file", true);
-                showLoading(false);
-            };
-            
-            // Read as ArrayBuffer for binary files (GLB, STL)
-            if (file.name.toLowerCase().endsWith('.glb') || file.name.toLowerCase().endsWith('.stl')) {
-                reader.readAsArrayBuffer(file);
-            } else {
-                // Read as text for OBJ files
-                reader.readAsArrayBuffer(file);
-            }
-        }
-        
-        // Material controls (available in both modes)
-        document.querySelectorAll('.material-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                currentMaterialType = this.dataset.material;
-                applyMaterialToModel();
-                
-                const materialProps = document.getElementById('material-props');
-                if (currentMaterialType === 'standard' || currentMaterialType === 'phong') {
-                    materialProps.style.display = 'block';
-                } else {
-                    materialProps.style.display = 'none';
-                }
-                
-                updateStatus(`Material changed to: ${currentMaterialType}`, false);
-            });
-        });
-        
-        // Basic controls (available in both modes)
-        document.getElementById('toggle-wireframe').addEventListener('click', function() {
+        // Toggle wireframe mode
+        function toggleWireframe() {
             wireframeVisible = !wireframeVisible;
+            
             currentMaterials.forEach(item => {
                 if (item.mesh && item.mesh.material) {
                     item.mesh.material.wireframe = wireframeVisible;
                 }
             });
-            this.textContent = "Wireframe: " + (wireframeVisible ? "On" : "Off");
+            
+            document.getElementById('toggle-wireframe').textContent = 
+                "Wireframe: " + (wireframeVisible ? "On" : "Off");
+        }
+        
+        // Toggle auto rotation
+        function toggleRotation() {
+            autoRotation = !autoRotation;
+            document.getElementById('toggle-rotation').textContent = 
+                "Auto Rotation: " + (autoRotation ? "On" : "Off");
+        }
+        
+        // Toggle rotation direction
+        function toggleRotationDirection() {
+            rotationDirection = -rotationDirection;
+            document.getElementById('rotation-direction').textContent = 
+                "Rotation: " + (rotationDirection > 0 ? "CW" : "CCW");
+        }
+        
+        // Update rotation speed
+        function updateRotationSpeed() {
+            rotationSpeed = parseFloat(document.getElementById('rotation-speed').value);
+        }
+        
+        // Update material properties
+        function updateMaterialProperties() {
+            if (!currentModel) return;
+            
+            currentModel.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.material instanceof THREE.MeshStandardMaterial) {
+                        child.material.metalness = parseFloat(document.getElementById('metalness').value);
+                        child.material.roughness = parseFloat(document.getElementById('roughness').value);
+                    } else if (child.material instanceof THREE.MeshPhongMaterial) {
+                        child.material.shininess = parseFloat(document.getElementById('shininess').value);
+                    }
+                }
+            });
+        }
+        
+        // Change material type
+        function changeMaterialType(type) {
+            currentMaterialType = type;
+            applyMaterialToModel();
+            
+            // Show/hide material properties based on material type
+            const materialProps = document.getElementById('material-props');
+            if (type === 'standard') {
+                materialProps.style.display = 'block';
+            } else if (type === 'phong') {
+                materialProps.style.display = 'block';
+            } else {
+                materialProps.style.display = 'none';
+            }
+            
+            updateStatus(`Material changed to: ${type}`, false);
+        }
+        
+        // Annotation functions
+        
+        // Initialize annotation canvas
+        function initAnnotationCanvas() {
+            annotationCanvas = document.getElementById('annotation-canvas');
+            annotationCtx = annotationCanvas.getContext('2d');
+            
+            // Set canvas size to match the image
+            const img = document.getElementById('screenshot-image');
+            annotationCanvas.width = img.clientWidth;
+            annotationCanvas.height = img.clientHeight;
+            
+            // Clear previous annotations
+            annotations = [];
+            annotationCounter = 1;
+            selectedAnnotation = null;
+            updateAnnotationList();
+            redrawAnnotations();
+        }
+        
+        // Add annotation at position
+        function addAnnotation(x, y) {
+            const annotation = {
+                id: annotationCounter++,
+                x: x,
+                y: y,
+                radius: defaultAnnotationRadius,
+                comment: null
+            };
+            
+            annotations.push(annotation);
+            updateAnnotationList();
+            redrawAnnotations();
+        }
+        
+        // Redraw all annotations on canvas
+        function redrawAnnotations() {
+            // Clear canvas
+            annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+            
+            // Draw all annotations
+            annotations.forEach(annotation => {
+                // Draw circle
+                annotationCtx.beginPath();
+                annotationCtx.arc(annotation.x, annotation.y, annotation.radius, 0, 2 * Math.PI);
+                
+                // Use different color for selected annotation
+                if (annotation === selectedAnnotation) {
+                    annotationCtx.strokeStyle = '#4cc9f0';
+                    annotationCtx.lineWidth = 4;
+                } else {
+                    annotationCtx.strokeStyle = '#ff0000';
+                    annotationCtx.lineWidth = 3;
+                }
+                
+                annotationCtx.stroke();
+                
+                // Draw number
+                annotationCtx.fillStyle = annotation === selectedAnnotation ? '#4cc9f0' : '#ff0000';
+                annotationCtx.font = 'bold ' + (annotation.radius * 0.8) + 'px Arial';
+                annotationCtx.textAlign = 'center';
+                annotationCtx.textBaseline = 'middle';
+                annotationCtx.fillText(annotation.id.toString(), annotation.x, annotation.y);
+                
+                // Draw comment if exists
+                if (annotation.comment) {
+                    const commentText = annotation.comment.type === 'custom' 
+                        ? annotation.comment.text 
+                        : commentOptions[annotation.comment.type];
+                    
+                    if (commentText) {
+                        // Draw comment text below the marker
+                        annotationCtx.fillStyle = '#4cc9f0';
+                        annotationCtx.font = '12px Arial';
+                        annotationCtx.textAlign = 'center';
+                        annotationCtx.textBaseline = 'top';
+                        
+                        // Draw background for better readability
+                        const textMetrics = annotationCtx.measureText(commentText);
+                        const textWidth = textMetrics.width;
+                        const textHeight = 16;
+                        const padding = 4;
+                        
+                        annotationCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        annotationCtx.fillRect(
+                            annotation.x - textWidth/2 - padding,
+                            annotation.y + annotation.radius + 5,
+                            textWidth + padding*2,
+                            textHeight + padding
+                        );
+                        
+                        // Draw text
+                        annotationCtx.fillStyle = '#ffffff';
+                        annotationCtx.fillText(
+                            commentText,
+                            annotation.x,
+                            annotation.y + annotation.radius + 5 + padding
+                        );
+                    }
+                }
+            });
+        }
+        
+        // Get annotation at position
+        function getAnnotationAt(x, y) {
+            for (let i = annotations.length - 1; i >= 0; i--) {
+                const annotation = annotations[i];
+                const distance = Math.sqrt(
+                    Math.pow(x - annotation.x, 2) + 
+                    Math.pow(y - annotation.y, 2)
+                );
+                
+                if (distance <= annotation.radius) {
+                    return annotation;
+                }
+            }
+            return null;
+        }
+        
+        // Update default annotation radius
+        function updateDefaultAnnotationRadius() {
+            defaultAnnotationRadius = parseInt(document.getElementById('default-annotation-radius').value);
+            document.getElementById('default-radius-value').textContent = defaultAnnotationRadius + 'px';
+        }
+        
+        // Update selected annotation radius
+        function updateSelectedAnnotationRadius() {
+            if (selectedAnnotation) {
+                selectedAnnotation.radius = parseInt(document.getElementById('selected-annotation-radius').value);
+                document.getElementById('selected-radius-value').textContent = selectedAnnotation.radius + 'px';
+                redrawAnnotations();
+                updateAnnotationList();
+            }
+        }
+        
+        // Select annotation
+        function selectAnnotation(annotation) {
+            selectedAnnotation = annotation;
+            
+            if (annotation) {
+                // Show selected annotation controls
+                document.getElementById('selected-annotation-controls').style.display = 'block';
+                document.getElementById('selected-annotation-radius').value = annotation.radius;
+                document.getElementById('selected-radius-value').textContent = annotation.radius + 'px';
+                document.getElementById('selected-annotation-number').textContent = annotation.id;
+                
+                // Show comment controls and set values
+                document.getElementById('comment-controls').style.display = 'block';
+                
+                if (annotation.comment) {
+                    document.getElementById('comment-type').value = annotation.comment.type;
+                    
+                    if (annotation.comment.type === 'custom') {
+                        document.getElementById('custom-comment-container').style.display = 'block';
+                        document.getElementById('custom-comment').value = annotation.comment.text;
+                    } else {
+                        document.getElementById('custom-comment-container').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('comment-type').value = '';
+                    document.getElementById('custom-comment-container').style.display = 'none';
+                }
+            } else {
+                // Hide selected annotation controls
+                document.getElementById('selected-annotation-controls').style.display = 'none';
+                document.getElementById('comment-controls').style.display = 'none';
+            }
+            
+            updateAnnotationList();
+            redrawAnnotations();
+        }
+        
+        // Update annotation list in the UI
+        function updateAnnotationList() {
+            const annotationList = document.getElementById('annotation-list');
+            annotationList.innerHTML = '';
+            
+            annotations.forEach(annotation => {
+                const item = document.createElement('div');
+                item.className = 'annotation-item' + (annotation === selectedAnnotation ? ' selected' : '');
+                
+                // Add comment indicator
+                const commentIndicator = annotation.comment ? '<span class="comment-indicator"></span>' : '';
+                
+                item.innerHTML = `
+                    <span class="annotation-number">${annotation.id}</span>
+                    Marker ${annotation.id}
+                    <span class="annotation-size">${annotation.radius}px</span>
+                    ${commentIndicator}
+                `;
+                
+                item.addEventListener('click', () => {
+                    selectAnnotation(annotation);
+                });
+                
+                annotationList.appendChild(item);
+            });
+        }
+        
+        // Clear all annotations
+        function clearAnnotations() {
+            annotations = [];
+            annotationCounter = 1;
+            selectedAnnotation = null;
+            updateAnnotationList();
+            redrawAnnotations();
+        }
+        
+        // Delete selected annotation
+        function deleteSelectedAnnotation() {
+            if (selectedAnnotation) {
+                const index = annotations.indexOf(selectedAnnotation);
+                if (index !== -1) {
+                    annotations.splice(index, 1);
+                    
+                    // If we deleted the last annotation, reset counter
+                    if (annotations.length === 0) {
+                        annotationCounter = 1;
+                    }
+                    
+                    selectedAnnotation = null;
+                    updateAnnotationList();
+                    redrawAnnotations();
+                }
+            }
+        }
+        
+        // Save comment for selected annotation
+        function saveComment() {
+            if (!selectedAnnotation) return;
+            
+            const commentType = document.getElementById('comment-type').value;
+            
+            if (commentType === '') {
+                // Remove comment
+                selectedAnnotation.comment = null;
+            } else if (commentType === 'custom') {
+                const customComment = document.getElementById('custom-comment').value.trim();
+                if (customComment) {
+                    selectedAnnotation.comment = {
+                        type: 'custom',
+                        text: customComment
+                    };
+                } else {
+                    selectedAnnotation.comment = null;
+                }
+            } else {
+                // Use predefined comment
+                selectedAnnotation.comment = {
+                    type: commentType,
+                    text: commentOptions[commentType]
+                };
+            }
+            
+            updateAnnotationList();
+            redrawAnnotations();
+            updateStatus("Comment saved", false);
+        }
+        
+        // Take screenshot function
+        function takeScreenshot() {
+            if (!currentModel) {
+                updateStatus("No model loaded to take screenshot", true);
+                return;
+            }
+            
+            // Render the scene to ensure we have the latest frame
+            renderer.render(scene, camera);
+            
+            // Get the canvas data URL
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            currentScreenshotUrl = dataURL;
+            
+            // Show preview
+            const preview = document.getElementById('screenshot-preview');
+            const screenshotImage = document.getElementById('screenshot-image');
+            screenshotImage.src = dataURL;
+            preview.style.display = 'flex';
+            
+            // Initialize annotation canvas after image loads
+            screenshotImage.onload = function() {
+                initAnnotationCanvas();
+            };
+            
+            updateStatus("Screenshot captured - preview shown", false);
+        }
+        
+        // Download screenshot with annotations function
+        function downloadAnnotatedScreenshot() {
+            if (!currentScreenshotUrl) return;
+            
+            // Create a temporary canvas to combine image and annotations
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Set canvas size to match the original screenshot
+            tempCanvas.width = screenshotImg.naturalWidth;
+            tempCanvas.height = screenshotImg.naturalHeight;
+            
+            // Draw the original screenshot
+            tempCtx.drawImage(screenshotImg, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Calculate scale factors for annotations
+            const scaleX = tempCanvas.width / annotationCanvas.width;
+            const scaleY = tempCanvas.height / annotationCanvas.height;
+            
+            // Draw all annotations
+            annotations.forEach(annotation => {
+                const scaledX = annotation.x * scaleX;
+                const scaledY = annotation.y * scaleY;
+                const scaledRadius = annotation.radius * Math.min(scaleX, scaleY);
+                
+                // Draw circle
+                tempCtx.beginPath();
+                tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                tempCtx.strokeStyle = '#ff0000';
+                tempCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
+                tempCtx.stroke();
+                
+                // Draw number
+                tempCtx.fillStyle = '#ff0000';
+                tempCtx.font = 'bold ' + (scaledRadius * 0.8) + 'px Arial';
+                tempCtx.textAlign = 'center';
+                tempCtx.textBaseline = 'middle';
+                tempCtx.fillText(annotation.id.toString(), scaledX, scaledY);
+                
+                // Draw comment if exists
+                if (annotation.comment) {
+                    const commentText = annotation.comment.type === 'custom' 
+                        ? annotation.comment.text 
+                        : commentOptions[annotation.comment.type];
+                    
+                    if (commentText) {
+                        // Draw comment text below the marker
+                        const fontSize = 12 * Math.min(scaleX, scaleY);
+                        tempCtx.fillStyle = '#4cc9f0';
+                        tempCtx.font = `bold ${fontSize}px Arial`;
+                        tempCtx.textAlign = 'center';
+                        tempCtx.textBaseline = 'top';
+                        
+                        // Draw background for better readability
+                        const textMetrics = tempCtx.measureText(commentText);
+                        const textWidth = textMetrics.width;
+                        const textHeight = fontSize;
+                        const padding = 4 * Math.min(scaleX, scaleY);
+                        
+                        tempCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        tempCtx.fillRect(
+                            scaledX - textWidth/2 - padding,
+                            scaledY + scaledRadius + 5 * Math.min(scaleX, scaleY),
+                            textWidth + padding*2,
+                            textHeight + padding
+                        );
+                        
+                        // Draw text
+                        tempCtx.fillStyle = '#ffffff';
+                        tempCtx.fillText(
+                            commentText,
+                            scaledX,
+                            scaledY + scaledRadius + 5 * Math.min(scaleX, scaleY) + padding/2
+                        );
+                    }
+                }
+            });
+            
+            // Create download link
+            const dataURL = tempCanvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `3d-model-screenshot-annotated-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+            link.href = dataURL;
+            link.click();
+            
+            updateStatus("Annotated screenshot downloaded", false);
+        }
+        
+        // Close preview function
+        function closePreview() {
+            document.getElementById('screenshot-preview').style.display = 'none';
+        }
+        
+        // Load STL model from file
+        function loadSTLModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.STLLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const geometry = loader.parse(event.target.result);
+                        
+                        // Create mesh with current material
+                        const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        
+                        resolve(mesh);
+                    } catch (error) {
+                        console.error("STL load error:", error);
+                        reject(new Error("Failed to load STL file: " + error.message));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read STL file"));
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        // Load GLB/GLTF model from file
+        function loadGLTFModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.GLTFLoader();
+                const url = URL.createObjectURL(file);
+                
+                loader.load(
+                    url,
+                    function(gltf) {
+                        URL.revokeObjectURL(url);
+                        const model = gltf.scene;
+                        
+                        // Apply our material to the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const newMaterial = createMaterial(currentMaterialType, child.material?.color, wireframeVisible);
+                                child.material = newMaterial;
+                            }
+                        });
+                        
+                        resolve(model);
+                    },
+                    function(xhr) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        document.getElementById('progress').textContent = percent + '%';
+                    },
+                    function(error) {
+                        URL.revokeObjectURL(url);
+                        console.error("GLTF load error:", error);
+                        reject(new Error("Failed to load GLB/GLTF file"));
+                    }
+                );
+            });
+        }
+        
+        // Load OBJ model from file
+        function loadOBJModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const model = loader.parse(event.target.result);
+                        
+                        // Apply material to all meshes in the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                                child.material = material;
+                            }
+                        });
+                        
+                        resolve(model);
+                    } catch (error) {
+                        console.error("OBJ load error:", error);
+                        reject(new Error("Failed to load OBJ file"));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read OBJ file"));
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+        
+        // Main model loading function from file
+        function loadModel(file) {
+            updateStatus("Loading 3D model...", false);
+            showLoading(true);
+            
+            // Remove previous model
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            const fileExtension = file.name.toLowerCase().split('.').pop();
+            let loadPromise;
+            
+            // Determine which loader to use based on file extension
+            if (fileExtension === 'stl') {
+                loadPromise = loadSTLModel(file);
+            } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
+                loadPromise = loadGLTFModel(file);
+            } else if (fileExtension === 'obj') {
+                loadPromise = loadOBJModel(file);
+            } else {
+                updateStatus("Unsupported file format", true);
+                showLoading(false);
+                return;
+            }
+            
+            loadPromise
+                .then(model => {
+                    // Create a container group for the model
+                    const container = new THREE.Group();
+                    container.add(model);
+                    
+                    // Calculate the bounding box of the model
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // Center the model within the container
+                    model.position.x = -center.x;
+                    model.position.y = -center.y;
+                    model.position.z = -center.z;
+                    
+                    // Add the container to the scene
+                    currentModel = container;
+                    scene.add(currentModel);
+                    
+                    // Store materials for color control
+                    storeOriginalMaterials(currentModel);
+                    
+                    // Adjust camera to fit model
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+                    
+                    // Set camera position
+                    camera.position.set(0, 0, cameraZ * 1.5);
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                    
+                    showLoading(false);
+                    updateStatus(`3D model loaded successfully: ${file.name}`, false);
+                })
+                .catch(error => {
+                    console.error("Model load error:", error);
+                    showLoading(false);
+                    updateStatus(`Error: ${error.message}`, true);
+                });
+        }
+        
+        // Event listeners for UI controls
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const fileExtension = file.name.toLowerCase().split('.').pop();
+                const supportedFormats = ['stl', 'glb', 'gltf', 'obj'];
+                
+                if (supportedFormats.includes(fileExtension)) {
+                    loadModel(file);
+                } else {
+                    updateStatus("Please select a STL, GLB, or OBJ file", true);
+                }
+            }
         });
         
-        document.getElementById('toggle-rotation').addEventListener('click', function() {
-            autoRotation = !autoRotation;
-            this.textContent = "Auto Rotation: " + (autoRotation ? "On" : "Off");
+        // Material type buttons
+        document.querySelectorAll('.material-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                changeMaterialType(this.dataset.material);
+            });
+        });
+        
+        // Material property sliders
+        document.getElementById('metalness').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        document.getElementById('roughness').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        document.getElementById('shininess').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        // Screenshot functionality
+        document.getElementById('take-screenshot').addEventListener('click', takeScreenshot);
+        document.getElementById('download-annotated-screenshot').addEventListener('click', downloadAnnotatedScreenshot);
+        document.getElementById('close-preview').addEventListener('click', closePreview);
+        document.getElementById('close-preview-top').addEventListener('click', closePreview);
+        
+        // Annotation event listeners
+        document.getElementById('default-annotation-radius').addEventListener('input', updateDefaultAnnotationRadius);
+        document.getElementById('selected-annotation-radius').addEventListener('input', updateSelectedAnnotationRadius);
+        document.getElementById('clear-annotations').addEventListener('click', clearAnnotations);
+        document.getElementById('delete-selected-annotation').addEventListener('click', deleteSelectedAnnotation);
+        
+        // Comment event listeners
+        document.getElementById('save-comment').addEventListener('click', saveComment);
+        document.getElementById('comment-type').addEventListener('change', function() {
+            if (this.value === 'custom') {
+                document.getElementById('custom-comment-container').style.display = 'block';
+            } else {
+                document.getElementById('custom-comment-container').style.display = 'none';
+                // Auto-save when selecting a predefined comment
+                saveComment();
+            }
+        });
+        
+        // Annotation canvas event listeners
+        document.getElementById('annotation-canvas').addEventListener('mousedown', function(event) {
+            const rect = annotationCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const annotation = getAnnotationAt(x, y);
+            
+            if (annotation) {
+                // Start dragging existing annotation or select it
+                if (event.ctrlKey || event.metaKey) {
+                    // If Ctrl/Cmd is pressed, just select without dragging
+                    selectAnnotation(annotation);
+                } else {
+                    // Start dragging
+                    isDraggingAnnotation = true;
+                    draggedAnnotation = annotation;
+                    selectAnnotation(annotation);
+                }
+            } else {
+                // Add new annotation
+                addAnnotation(x, y);
+                // Select the new annotation
+                selectAnnotation(annotations[annotations.length - 1]);
+            }
+        });
+        
+        document.getElementById('annotation-canvas').addEventListener('mousemove', function(event) {
+            if (isDraggingAnnotation && draggedAnnotation) {
+                const rect = annotationCanvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                draggedAnnotation.x = x;
+                draggedAnnotation.y = y;
+                redrawAnnotations();
+            }
+        });
+        
+        document.getElementById('annotation-canvas').addEventListener('mouseup', function() {
+            isDraggingAnnotation = false;
+            draggedAnnotation = null;
+        });
+        
+        document.getElementById('annotation-canvas').addEventListener('mouseleave', function() {
+            isDraggingAnnotation = false;
+            draggedAnnotation = null;
+        });
+        
+        // Click on canvas background to deselect
+        document.getElementById('annotation-canvas').addEventListener('click', function(event) {
+            const rect = annotationCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const annotation = getAnnotationAt(x, y);
+            
+            // If clicked on empty space and not dragging, deselect
+            if (!annotation && !isDraggingAnnotation) {
+                selectAnnotation(null);
+            }
+        });
+        
+        // Store the original screenshot image for download
+        document.getElementById('screenshot-image').addEventListener('load', function() {
+            screenshotImg = this;
         });
         
         document.getElementById('reset-view').addEventListener('click', function() {
             controls.reset();
+            updateStatus("View reset", false);
         });
         
         document.getElementById('toggle-grid').addEventListener('click', function() {
             gridVisible = !gridVisible;
             gridHelper.visible = gridVisible;
             this.textContent = "Grid: " + (gridVisible ? "On" : "Off");
+            updateStatus("Grid " + (gridVisible ? "enabled" : "disabled"), false);
         });
         
         document.getElementById('toggle-axes').addEventListener('click', function() {
             axesVisible = !axesVisible;
             axesHelper.visible = axesVisible;
             this.textContent = "Axes: " + (axesVisible ? "On" : "Off");
+            updateStatus("Axes " + (axesVisible ? "enabled" : "disabled"), false);
+        });
+        
+        document.getElementById('bg-dark').addEventListener('click', function() {
+            scene.background = new THREE.Color(0x2c3e50);
+            updateStatus("Dark background enabled", false);
+        });
+        
+        document.getElementById('bg-light').addEventListener('click', function() {
+            scene.background = new THREE.Color(0xcccccc);
+            updateStatus("Light background enabled", false);
+        });
+        
+        document.getElementById('bg-gradient').addEventListener('click', function() {
+            // Create gradient background
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            const gradient = context.createLinearGradient(0, 0, 256, 256);
+            gradient.addColorStop(0, '#1a2a6c');
+            gradient.addColorStop(0.5, '#b21f1f');
+            gradient.addColorStop(1, '#fdbb2d');
+            
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 256, 256);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            scene.background = texture;
+            updateStatus("Gradient background enabled", false);
+        });
+        
+        // Color picker event
+        document.getElementById('model-color').addEventListener('input', function() {
+            updateModelColor();
+        });
+        
+        // Wireframe toggle event
+        document.getElementById('toggle-wireframe').addEventListener('click', function() {
+            toggleWireframe();
+            updateStatus("Wireframe " + (wireframeVisible ? "enabled" : "disabled"), false);
+        });
+        
+        // Auto rotation toggle event
+        document.getElementById('toggle-rotation').addEventListener('click', function() {
+            toggleRotation();
+            updateStatus("Auto rotation " + (autoRotation ? "enabled" : "disabled"), false);
+        });
+        
+        // Rotation direction toggle event
+        document.getElementById('rotation-direction').addEventListener('click', function() {
+            toggleRotationDirection();
+            updateStatus("Rotation direction: " + (rotationDirection > 0 ? "clockwise" : "counter-clockwise"), false);
+        });
+        
+        // Rotation speed event
+        document.getElementById('rotation-speed').addEventListener('input', function() {
+            updateRotationSpeed();
         });
         
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
             
+            // Вращаем контейнер модели если включена автоповорот
             if (autoRotation && currentModel) {
                 currentModel.rotation.y += rotationSpeed * 0.01 * rotationDirection;
             }
@@ -1261,7 +1683,11 @@
             renderer.render(scene, camera);
         }
         
+        // Start the animation
         animate();
+        
+        // Initial status
+        updateStatus("Ready to load 3D model. Please select a file to begin.", false);
     </script>
 </body>
 </html>
