@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer PRO</title>
     <style>
-        /* Все предыдущие стили остаются без изменений */
+        /* Все стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -938,7 +938,7 @@
         let annotationCanvas, annotationCtx;
         let screenshotImg;
         
-        // NEW: Zoom variables
+        // NEW: Zoom variables - УБИРАЕМ масштабирование через transform
         let zoomLevel = 1.0;
         const ZOOM_STEP = 0.1;
         const MIN_ZOOM = 0.5;
@@ -1371,7 +1371,7 @@
             }
         }
         
-        // NEW: Zoom functions
+        // NEW: Zoom functions - ПЕРЕПИСЫВАЕМ для правильного позиционирования
         function zoomIn() {
             if (zoomLevel < MAX_ZOOM) {
                 zoomLevel += ZOOM_STEP;
@@ -1396,9 +1396,23 @@
             const container = document.querySelector('.annotation-canvas-container');
             
             if (img && container) {
-                const scale = zoomLevel;
-                container.style.transform = `scale(${scale})`;
-                container.style.transformOrigin = 'center center';
+                // Вместо transform используем изменение размеров
+                const originalWidth = img.naturalWidth;
+                const originalHeight = img.naturalHeight;
+                
+                const scaledWidth = originalWidth * zoomLevel;
+                const scaledHeight = originalHeight * zoomLevel;
+                
+                // Обновляем размеры canvas
+                annotationCanvas.width = scaledWidth;
+                annotationCanvas.height = scaledHeight;
+                
+                // Обновляем размеры контейнера
+                container.style.width = scaledWidth + 'px';
+                container.style.height = scaledHeight + 'px';
+                
+                // Перерисовываем аннотации
+                redrawAnnotations();
                 
                 // Update zoom level display
                 document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
@@ -1569,8 +1583,11 @@
             
             // Set canvas size to match the image
             const img = document.getElementById('screenshot-image');
-            annotationCanvas.width = img.naturalWidth || img.clientWidth;
-            annotationCanvas.height = img.naturalHeight || img.clientHeight;
+            const originalWidth = img.naturalWidth;
+            const originalHeight = img.naturalHeight;
+            
+            annotationCanvas.width = originalWidth * zoomLevel;
+            annotationCanvas.height = originalHeight * zoomLevel;
             
             // Clear previous annotations
             annotations = [];
@@ -1585,16 +1602,19 @@
         
         // Add annotation at position
         function addAnnotation(x, y) {
-            // Adjust coordinates for zoom
-            const scale = 1 / zoomLevel;
-            const adjustedX = x * scale;
-            const adjustedY = y * scale;
+            // Корректируем координаты с учетом реального размера canvas
+            const rect = annotationCanvas.getBoundingClientRect();
+            const scaleX = annotationCanvas.width / rect.width;
+            const scaleY = annotationCanvas.height / rect.height;
+            
+            const adjustedX = x * scaleX;
+            const adjustedY = y * scaleY;
             
             const annotation = {
                 id: annotationCounter++,
                 x: adjustedX,
                 y: adjustedY,
-                radius: defaultAnnotationRadius,
+                radius: defaultAnnotationRadius * zoomLevel, // Учитываем зум для радиуса
                 comment: null
             };
             
@@ -1610,10 +1630,6 @@
         function redrawAnnotations() {
             // Clear canvas
             annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
-            
-            // Apply zoom transformation
-            annotationCtx.save();
-            annotationCtx.scale(zoomLevel, zoomLevel);
             
             // Draw all annotations
             annotations.forEach(annotation => {
@@ -1676,16 +1692,17 @@
                     }
                 }
             });
-            
-            annotationCtx.restore();
         }
         
         // Get annotation at position
         function getAnnotationAt(x, y) {
-            // Adjust coordinates for zoom
-            const scale = 1 / zoomLevel;
-            const adjustedX = x * scale;
-            const adjustedY = y * scale;
+            // Корректируем координаты с учетом реального размера canvas
+            const rect = annotationCanvas.getBoundingClientRect();
+            const scaleX = annotationCanvas.width / rect.width;
+            const scaleY = annotationCanvas.height / rect.height;
+            
+            const adjustedX = x * scaleX;
+            const adjustedY = y * scaleY;
             
             for (let i = annotations.length - 1; i >= 0; i--) {
                 const annotation = annotations[i];
@@ -1710,8 +1727,8 @@
         // Update selected annotation radius
         function updateSelectedAnnotationRadius() {
             if (selectedAnnotation) {
-                selectedAnnotation.radius = parseInt(document.getElementById('selected-annotation-radius').value);
-                document.getElementById('selected-radius-value').textContent = selectedAnnotation.radius + 'px';
+                selectedAnnotation.radius = parseInt(document.getElementById('selected-annotation-radius').value) * zoomLevel;
+                document.getElementById('selected-radius-value').textContent = Math.round(selectedAnnotation.radius / zoomLevel) + 'px';
                 redrawAnnotations();
                 updateAnnotationList();
             }
@@ -1724,8 +1741,8 @@
             if (annotation) {
                 // Show selected annotation controls
                 document.getElementById('selected-annotation-controls').style.display = 'block';
-                document.getElementById('selected-annotation-radius').value = annotation.radius;
-                document.getElementById('selected-radius-value').textContent = annotation.radius + 'px';
+                document.getElementById('selected-annotation-radius').value = Math.round(annotation.radius / zoomLevel);
+                document.getElementById('selected-radius-value').textContent = Math.round(annotation.radius / zoomLevel) + 'px';
                 document.getElementById('selected-annotation-number').textContent = annotation.id;
                 
                 // Show comment controls and set values
@@ -1769,7 +1786,7 @@
                 item.innerHTML = `
                     <span class="annotation-number">${annotation.id}</span>
                     Marker ${annotation.id}
-                    <span class="annotation-size">${annotation.radius}px</span>
+                    <span class="annotation-size">${Math.round(annotation.radius / zoomLevel)}px</span>
                     ${commentIndicator}
                 `;
                 
@@ -1884,21 +1901,26 @@
             // Draw the original screenshot
             tempCtx.drawImage(screenshotImg, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // Draw all annotations
+            // Draw all annotations (в оригинальном масштабе)
             annotations.forEach(annotation => {
+                // Конвертируем координаты обратно в оригинальный масштаб
+                const originalX = annotation.x / zoomLevel;
+                const originalY = annotation.y / zoomLevel;
+                const originalRadius = annotation.radius / zoomLevel;
+                
                 // Draw circle
                 tempCtx.beginPath();
-                tempCtx.arc(annotation.x, annotation.y, annotation.radius, 0, 2 * Math.PI);
+                tempCtx.arc(originalX, originalY, originalRadius, 0, 2 * Math.PI);
                 tempCtx.strokeStyle = '#ff0000';
                 tempCtx.lineWidth = 3;
                 tempCtx.stroke();
                 
                 // Draw number
                 tempCtx.fillStyle = '#ff0000';
-                tempCtx.font = 'bold ' + (annotation.radius * 0.8) + 'px Arial';
+                tempCtx.font = 'bold ' + (originalRadius * 0.8) + 'px Arial';
                 tempCtx.textAlign = 'center';
                 tempCtx.textBaseline = 'middle';
-                tempCtx.fillText(annotation.id.toString(), annotation.x, annotation.y);
+                tempCtx.fillText(annotation.id.toString(), originalX, originalY);
                 
                 // Draw comment if exists
                 if (annotation.comment) {
@@ -1921,8 +1943,8 @@
                         
                         tempCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                         tempCtx.fillRect(
-                            annotation.x - textWidth/2 - padding,
-                            annotation.y + annotation.radius + 5,
+                            originalX - textWidth/2 - padding,
+                            originalY + originalRadius + 5,
                             textWidth + padding*2,
                             textHeight + padding
                         );
@@ -1931,8 +1953,8 @@
                         tempCtx.fillStyle = '#ffffff';
                         tempCtx.fillText(
                             commentText,
-                            annotation.x,
-                            annotation.y + annotation.radius + 5 + padding
+                            originalX,
+                            originalY + originalRadius + 5 + padding
                         );
                     }
                 }
@@ -2225,10 +2247,12 @@
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
                 
-                // Adjust coordinates for zoom
-                const scale = 1 / zoomLevel;
-                draggedAnnotation.x = x * scale;
-                draggedAnnotation.y = y * scale;
+                // Корректируем координаты с учетом реального размера canvas
+                const scaleX = annotationCanvas.width / rect.width;
+                const scaleY = annotationCanvas.height / rect.height;
+                
+                draggedAnnotation.x = x * scaleX;
+                draggedAnnotation.y = y * scaleY;
                 
                 redrawAnnotations();
             }
