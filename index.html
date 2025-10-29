@@ -475,6 +475,15 @@
             margin-top: 5px;
         }
         
+        /* NEW: File size warning */
+        .file-size-warning {
+            color: #ff6b6b;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .viewer-container {
                 flex-direction: column;
@@ -531,6 +540,9 @@
                         </label>
                         <input type="file" id="file-input" accept=".stl,.glb,.obj">
                         <p class="format-info">Supports: STL, GLB, OBJ formats</p>
+                        <p class="file-size-warning" id="file-size-warning">
+                            Large files may not be shareable via temporary links
+                        </p>
                     </div>
                 </div>
 
@@ -715,7 +727,13 @@
         let currentMaterialType = 'phong';
         let gridHelper, axesHelper;
         let currentScreenshotUrl = null;
-        let currentModelFile = null; // NEW: Store the current model file
+        let currentModelFile = null;
+        
+        // NEW: Database for storing models
+        let db = null;
+        const DB_NAME = 'ModelViewerDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'models';
         
         // Annotation variables
         let annotations = [];
@@ -737,6 +755,148 @@
             "make_wider_height": "Сделать шире по высоте",
             "custom": "Свой вариант"
         };
+        
+        // NEW: Initialize IndexedDB
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = function(event) {
+                    console.error("Database error:", event.target.error);
+                    reject(event.target.error);
+                };
+                
+                request.onsuccess = function(event) {
+                    db = event.target.result;
+                    console.log("Database opened successfully");
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = function(event) {
+                    const database = event.target.result;
+                    
+                    // Create object store if it doesn't exist
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                        console.log("Object store created");
+                    }
+                };
+            });
+        }
+        
+        // NEW: Store model in IndexedDB
+        function storeModelInDB(modelId, modelData) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error("Database not initialized"));
+                    return;
+                }
+                
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                
+                const data = {
+                    id: modelId,
+                    name: modelData.name,
+                    type: modelData.type,
+                    data: modelData.data,
+                    timestamp: Date.now(),
+                    expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+                };
+                
+                const request = objectStore.add(data);
+                
+                request.onsuccess = function() {
+                    console.log("Model stored successfully");
+                    resolve();
+                };
+                
+                request.onerror = function(event) {
+                    console.error("Error storing model:", event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+        
+        // NEW: Get model from IndexedDB
+        function getModelFromDB(modelId) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error("Database not initialized"));
+                    return;
+                }
+                
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.get(modelId);
+                
+                request.onsuccess = function() {
+                    const result = request.result;
+                    if (result) {
+                        // Check if model has expired
+                        if (result.expires && Date.now() > result.expires) {
+                            // Delete expired model
+                            deleteModelFromDB(modelId);
+                            reject(new Error("Model has expired"));
+                        } else {
+                            resolve(result);
+                        }
+                    } else {
+                        reject(new Error("Model not found"));
+                    }
+                };
+                
+                request.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
+        
+        // NEW: Delete model from IndexedDB
+        function deleteModelFromDB(modelId) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error("Database not initialized"));
+                    return;
+                }
+                
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.delete(modelId);
+                
+                request.onsuccess = function() {
+                    console.log("Model deleted successfully");
+                    resolve();
+                };
+                
+                request.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
+        
+        // NEW: Clean up expired models
+        function cleanupExpiredModels() {
+            if (!db) return;
+            
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const objectStore = transaction.objectStore(STORE_NAME);
+            const index = objectStore.index('timestamp');
+            const request = index.openCursor();
+            
+            request.onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const model = cursor.value;
+                    if (model.expires && Date.now() > model.expires) {
+                        cursor.delete();
+                        console.log("Deleted expired model:", model.id);
+                    }
+                    cursor.continue();
+                }
+            };
+        }
         
         // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
@@ -811,53 +971,61 @@
         }
         
         // NEW: Generate temporary link for the current model
-        function generateTemporaryLink() {
+        async function generateTemporaryLink() {
             if (!currentModelFile) {
                 updateStatus("No model loaded to share", true);
                 return;
             }
             
-            // Create a unique ID for this model
-            const modelId = 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            // Check file size (limit to 5MB for sharing)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (currentModelFile.size > maxSize) {
+                updateStatus("File too large for sharing (max 5MB)", true);
+                return;
+            }
             
-            // Store the model data in localStorage with expiration
-            const modelData = {
-                name: currentModelFile.name,
-                type: currentModelFile.type,
-                data: null, // Will be populated after reading the file
-                timestamp: Date.now(),
-                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours from now
-            };
+            updateStatus("Generating shareable link...", false);
             
-            // Read the file and store it
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                modelData.data = e.target.result;
+            try {
+                // Create a unique ID for this model
+                const modelId = 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                try {
-                    // Store in localStorage
-                    localStorage.setItem('3dviewer_model_' + modelId, JSON.stringify(modelData));
-                    
-                    // Generate the shareable URL
-                    const shareUrl = window.location.origin + window.location.pathname + '?model=' + modelId;
-                    
-                    // Display the link
-                    document.getElementById('share-link').value = shareUrl;
-                    document.getElementById('share-controls').style.display = 'block';
-                    
-                    updateStatus("Temporary link generated. It will be valid for 24 hours.", false);
-                } catch (error) {
-                    console.error("Error storing model:", error);
-                    updateStatus("Error generating link: " + error.message, true);
-                }
-            };
-            
-            reader.onerror = function() {
-                updateStatus("Error reading model file", true);
-            };
-            
-            // Read the file as data URL
-            reader.readAsDataURL(currentModelFile);
+                // Read the file
+                const modelData = await readFileAsArrayBuffer(currentModelFile);
+                
+                // Store in IndexedDB
+                await storeModelInDB(modelId, {
+                    name: currentModelFile.name,
+                    type: currentModelFile.type,
+                    data: modelData
+                });
+                
+                // Generate the shareable URL
+                const shareUrl = window.location.origin + window.location.pathname + '?model=' + modelId;
+                
+                // Display the link
+                document.getElementById('share-link').value = shareUrl;
+                document.getElementById('share-controls').style.display = 'block';
+                
+                updateStatus("Temporary link generated. It will be valid for 24 hours.", false);
+            } catch (error) {
+                console.error("Error generating link:", error);
+                updateStatus("Error generating link: " + error.message, true);
+            }
+        }
+        
+        // NEW: Read file as ArrayBuffer
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    resolve(e.target.result);
+                };
+                reader.onerror = function() {
+                    reject(new Error("Failed to read file"));
+                };
+                reader.readAsArrayBuffer(file);
+            });
         }
         
         // NEW: Copy link to clipboard
@@ -882,7 +1050,7 @@
         }
         
         // NEW: Load model from URL parameter
-        function loadModelFromUrlParam() {
+        async function loadModelFromUrlParam() {
             const urlParams = new URLSearchParams(window.location.search);
             const modelId = urlParams.get('model');
             
@@ -891,43 +1059,16 @@
                 showLoading(true);
                 
                 try {
-                    // Retrieve model data from localStorage
-                    const storedData = localStorage.getItem('3dviewer_model_' + modelId);
+                    // Retrieve model data from IndexedDB
+                    const modelData = await getModelFromDB(modelId);
                     
-                    if (!storedData) {
-                        updateStatus("Shared model not found or expired", true);
-                        showLoading(false);
-                        return;
-                    }
-                    
-                    const modelData = JSON.parse(storedData);
-                    
-                    // Check if the model has expired
-                    if (modelData.expires && Date.now() > modelData.expires) {
-                        // Remove expired model
-                        localStorage.removeItem('3dviewer_model_' + modelId);
-                        updateStatus("Shared model has expired", true);
-                        showLoading(false);
-                        return;
-                    }
-                    
-                    // Convert data URL back to file
-                    const dataURL = modelData.data;
-                    const byteString = atob(dataURL.split(',')[1]);
-                    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
-                    const ab = new ArrayBuffer(byteString.length);
-                    const ia = new Uint8Array(ab);
-                    
-                    for (let i = 0; i < byteString.length; i++) {
-                        ia[i] = byteString.charCodeAt(i);
-                    }
-                    
-                    const blob = new Blob([ab], { type: mimeString });
+                    // Convert ArrayBuffer back to File
+                    const blob = new Blob([modelData.data], { type: modelData.type });
                     const file = new File([blob], modelData.name, { type: modelData.type });
                     
                     // Load the model
                     currentModelFile = file;
-                    loadModel(file);
+                    await loadModel(file);
                     
                     updateStatus("Shared model loaded successfully", false);
                 } catch (error) {
@@ -935,6 +1076,19 @@
                     updateStatus("Error loading shared model: " + error.message, true);
                     showLoading(false);
                 }
+            }
+        }
+        
+        // NEW: Check file size and show warning
+        function checkFileSize(file) {
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const warningElement = document.getElementById('file-size-warning');
+            
+            if (file.size > maxSize) {
+                warningElement.style.display = 'block';
+                warningElement.textContent = `File is large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Sharing may not work.`;
+            } else {
+                warningElement.style.display = 'none';
             }
         }
         
@@ -1650,6 +1804,7 @@
                 const supportedFormats = ['stl', 'glb', 'gltf', 'obj'];
                 
                 if (supportedFormats.includes(fileExtension)) {
+                    checkFileSize(file);
                     loadModel(file);
                 } else {
                     updateStatus("Please select a STL, GLB, or OBJ file", true);
@@ -1868,13 +2023,24 @@
         // Start the animation
         animate();
         
-        // NEW: Load model from URL parameter on page load
-        loadModelFromUrlParam();
-        
-        // Initial status
-        if (!currentModel) {
-            updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+        // NEW: Initialize database and load model from URL parameter
+        async function initializeApp() {
+            try {
+                await initDatabase();
+                cleanupExpiredModels();
+                await loadModelFromUrlParam();
+                
+                if (!currentModel) {
+                    updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+                }
+            } catch (error) {
+                console.error("Initialization error:", error);
+                updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+            }
         }
+        
+        // Initialize the application
+        initializeApp();
     </script>
 </body>
 </html>
