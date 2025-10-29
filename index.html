@@ -938,7 +938,7 @@
         let annotationCanvas, annotationCtx;
         let screenshotImg;
         
-        // NEW: Zoom variables - УБИРАЕМ масштабирование через transform
+        // NEW: Zoom variables
         let zoomLevel = 1.0;
         const ZOOM_STEP = 0.1;
         const MIN_ZOOM = 0.5;
@@ -1334,8 +1334,10 @@
                     // Retrieve model data from IndexedDB
                     const modelData = await getModelFromDB(modelId);
                     
-                    // Convert ArrayBuffer back to File
+                    // Convert ArrayBuffer back to Blob
                     const blob = new Blob([modelData.data], { type: modelData.type });
+                    
+                    // Create a File-like object
                     const file = new File([blob], modelData.name, { type: modelData.type });
                     
                     // Load the model
@@ -1371,7 +1373,7 @@
             }
         }
         
-        // NEW: Zoom functions - ПЕРЕПИСЫВАЕМ для правильного позиционирования
+        // NEW: Zoom functions
         function zoomIn() {
             if (zoomLevel < MAX_ZOOM) {
                 zoomLevel += ZOOM_STEP;
@@ -2209,10 +2211,10 @@
         document.getElementById('comment-type').addEventListener('change', function() {
             if (this.value === 'custom') {
                 document.getElementById('custom-comment-container').style.display = 'block';
-            } else {
-                document.getElementById('custom-comment-container').style.display = 'none';
                 // Auto-save when selecting a predefined comment
                 saveComment();
+            } else {
+                document.getElementById('custom-comment-container').style.display = 'none';
             }
         });
         
