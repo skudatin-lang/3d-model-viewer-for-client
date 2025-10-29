@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer PRO</title>
     <style>
-        /* Все стили остаются без изменений */
+        /* Все предыдущие стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -446,6 +446,35 @@
             transform: scale(1.1);
         }
         
+        /* NEW: Share link controls */
+        .share-controls {
+            margin-top: 10px;
+            display: none;
+        }
+        .share-link-container {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .share-link-container input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: rgba(30, 30, 40, 0.8);
+            color: white;
+        }
+        .share-link-container button {
+            width: auto;
+            padding: 8px 12px;
+        }
+        .share-info {
+            font-size: 12px;
+            opacity: 0.8;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
         @media (max-width: 768px) {
             .viewer-container {
                 flex-direction: column;
@@ -470,6 +499,9 @@
             }
             .screenshot-buttons button {
                 width: 100%;
+            }
+            .share-link-container {
+                flex-direction: column;
             }
         }
     </style>
@@ -499,6 +531,18 @@
                         </label>
                         <input type="file" id="file-input" accept=".stl,.glb,.obj">
                         <p class="format-info">Supports: STL, GLB, OBJ formats</p>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Share Model</h3>
+                    <button id="generate-link" class="screenshot-btn">Generate Temporary Link</button>
+                    <div class="share-controls" id="share-controls">
+                        <div class="share-link-container">
+                            <input type="text" id="share-link" readonly>
+                            <button id="copy-link">Copy</button>
+                        </div>
+                        <p class="share-info">This link will be valid for 24 hours</p>
                     </div>
                 </div>
 
@@ -671,6 +715,7 @@
         let currentMaterialType = 'phong';
         let gridHelper, axesHelper;
         let currentScreenshotUrl = null;
+        let currentModelFile = null; // NEW: Store the current model file
         
         // Annotation variables
         let annotations = [];
@@ -763,6 +808,134 @@
         // Show/hide loading indicator
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        // NEW: Generate temporary link for the current model
+        function generateTemporaryLink() {
+            if (!currentModelFile) {
+                updateStatus("No model loaded to share", true);
+                return;
+            }
+            
+            // Create a unique ID for this model
+            const modelId = 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Store the model data in localStorage with expiration
+            const modelData = {
+                name: currentModelFile.name,
+                type: currentModelFile.type,
+                data: null, // Will be populated after reading the file
+                timestamp: Date.now(),
+                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours from now
+            };
+            
+            // Read the file and store it
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                modelData.data = e.target.result;
+                
+                try {
+                    // Store in localStorage
+                    localStorage.setItem('3dviewer_model_' + modelId, JSON.stringify(modelData));
+                    
+                    // Generate the shareable URL
+                    const shareUrl = window.location.origin + window.location.pathname + '?model=' + modelId;
+                    
+                    // Display the link
+                    document.getElementById('share-link').value = shareUrl;
+                    document.getElementById('share-controls').style.display = 'block';
+                    
+                    updateStatus("Temporary link generated. It will be valid for 24 hours.", false);
+                } catch (error) {
+                    console.error("Error storing model:", error);
+                    updateStatus("Error generating link: " + error.message, true);
+                }
+            };
+            
+            reader.onerror = function() {
+                updateStatus("Error reading model file", true);
+            };
+            
+            // Read the file as data URL
+            reader.readAsDataURL(currentModelFile);
+        }
+        
+        // NEW: Copy link to clipboard
+        function copyLinkToClipboard() {
+            const shareLink = document.getElementById('share-link');
+            shareLink.select();
+            shareLink.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                navigator.clipboard.writeText(shareLink.value).then(function() {
+                    updateStatus("Link copied to clipboard", false);
+                }).catch(function() {
+                    // Fallback for older browsers
+                    document.execCommand('copy');
+                    updateStatus("Link copied to clipboard", false);
+                });
+            } catch (error) {
+                // Final fallback
+                document.execCommand('copy');
+                updateStatus("Link copied to clipboard", false);
+            }
+        }
+        
+        // NEW: Load model from URL parameter
+        function loadModelFromUrlParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const modelId = urlParams.get('model');
+            
+            if (modelId) {
+                updateStatus("Loading shared model...", false);
+                showLoading(true);
+                
+                try {
+                    // Retrieve model data from localStorage
+                    const storedData = localStorage.getItem('3dviewer_model_' + modelId);
+                    
+                    if (!storedData) {
+                        updateStatus("Shared model not found or expired", true);
+                        showLoading(false);
+                        return;
+                    }
+                    
+                    const modelData = JSON.parse(storedData);
+                    
+                    // Check if the model has expired
+                    if (modelData.expires && Date.now() > modelData.expires) {
+                        // Remove expired model
+                        localStorage.removeItem('3dviewer_model_' + modelId);
+                        updateStatus("Shared model has expired", true);
+                        showLoading(false);
+                        return;
+                    }
+                    
+                    // Convert data URL back to file
+                    const dataURL = modelData.data;
+                    const byteString = atob(dataURL.split(',')[1]);
+                    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    
+                    const blob = new Blob([ab], { type: mimeString });
+                    const file = new File([blob], modelData.name, { type: modelData.type });
+                    
+                    // Load the model
+                    currentModelFile = file;
+                    loadModel(file);
+                    
+                    updateStatus("Shared model loaded successfully", false);
+                } catch (error) {
+                    console.error("Error loading shared model:", error);
+                    updateStatus("Error loading shared model: " + error.message, true);
+                    showLoading(false);
+                }
+            }
         }
         
         // Create material based on type and properties
@@ -1443,6 +1616,9 @@
                     currentModel = container;
                     scene.add(currentModel);
                     
+                    // Store the file for sharing
+                    currentModelFile = file;
+                    
                     // Store materials for color control
                     storeOriginalMaterials(currentModel);
                     
@@ -1480,6 +1656,12 @@
                 }
             }
         });
+        
+        // NEW: Generate link button
+        document.getElementById('generate-link').addEventListener('click', generateTemporaryLink);
+        
+        // NEW: Copy link button
+        document.getElementById('copy-link').addEventListener('click', copyLinkToClipboard);
         
         // Material type buttons
         document.querySelectorAll('.material-btn').forEach(button => {
@@ -1686,8 +1868,13 @@
         // Start the animation
         animate();
         
+        // NEW: Load model from URL parameter on page load
+        loadModelFromUrlParam();
+        
         // Initial status
-        updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+        if (!currentModel) {
+            updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+        }
     </script>
 </body>
 </html>
