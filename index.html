@@ -950,225 +950,6 @@
             "custom": "Свой вариант"
         };
         
-        // NEW: Backend service configuration
-        const BACKEND_SERVICE = {
-            // Using a free file sharing service as backend
-            UPLOAD_URL: 'https://file.io',
-            // Alternative services (uncomment to use):
-            // UPLOAD_URL: 'https://tmpfiles.org/api/v1/upload',
-            // UPLOAD_URL: 'https://transfer.sh',
-            MAX_RETRIES: 3,
-            RETRY_DELAY: 1000
-        };
-        
-        // NEW: Generate temporary link using external service
-        async function generateTemporaryLink() {
-            if (!currentModelFile) {
-                updateStatus("No model loaded to share", true);
-                return;
-            }
-            
-            // Check file size
-            if (currentModelFile.size > MAX_FILE_SIZE) {
-                updateStatus(`File too large for sharing (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`, true);
-                return;
-            }
-            
-            updateStatus("Generating shareable link...", false);
-            showUploadProgress(true, 0, "Preparing model for sharing...");
-            
-            try {
-                // Try Data URL for small files first
-                if (currentModelFile.size < 5 * 1024 * 1024) { // 5MB limit for Data URLs
-                    showUploadProgress(true, 10, "Creating direct link...");
-                    
-                    const modelData = await readFileAsArrayBuffer(currentModelFile);
-                    const base64Data = arrayBufferToBase64(modelData);
-                    const dataUrl = `data:${currentModelFile.type};base64,${base64Data}`;
-                    
-                    if (dataUrl.length < MAX_URL_LENGTH) {
-                        const shareUrl = new URL(window.location.href);
-                        shareUrl.searchParams.set('model', currentModelFile.name);
-                        shareUrl.searchParams.set('type', currentModelFile.type);
-                        shareUrl.searchParams.set('data', base64Data);
-                        
-                        document.getElementById('share-link').value = shareUrl.toString();
-                        document.getElementById('share-controls').style.display = 'block';
-                        showUploadProgress(false);
-                        updateStatus("Direct link generated", false);
-                        return;
-                    }
-                }
-                
-                // For larger files, use external service
-                showUploadProgress(true, 20, "Uploading to file sharing service...");
-                const shareUrl = await uploadToFileService(currentModelFile);
-                
-                document.getElementById('share-link').value = shareUrl;
-                document.getElementById('share-controls').style.display = 'block';
-                showUploadProgress(false);
-                updateStatus("Temporary link generated. It will be valid for 14 days.", false);
-                
-            } catch (error) {
-                console.error("Error generating link:", error);
-                showUploadProgress(false);
-                updateStatus("Error generating link: " + error.message, true);
-            }
-        }
-        
-        // NEW: Upload file to external service
-        async function uploadToFileService(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // For file.io service
-            formData.append('expires', '14d'); // 14 days expiration
-            formData.append('maxDownloads', '100');
-            
-            let lastError;
-            
-            for (let attempt = 1; attempt <= BACKEND_SERVICE.MAX_RETRIES; attempt++) {
-                try {
-                    showUploadProgress(true, 20 + (attempt-1)*20, `Uploading (attempt ${attempt}/${BACKEND_SERVICE.MAX_RETRIES})...`);
-                    
-                    const response = await fetch(BACKEND_SERVICE.UPLOAD_URL, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showUploadProgress(true, 100, "Upload complete!");
-                        return result.link || result.url;
-                    } else {
-                        throw new Error(result.message || 'Upload failed');
-                    }
-                    
-                } catch (error) {
-                    lastError = error;
-                    console.error(`Upload attempt ${attempt} failed:`, error);
-                    
-                    if (attempt < BACKEND_SERVICE.MAX_RETRIES) {
-                        showUploadProgress(true, 20 + attempt*20, `Retrying upload... (${error.message})`);
-                        await new Promise(resolve => setTimeout(resolve, BACKEND_SERVICE.RETRY_DELAY * attempt));
-                    }
-                }
-            }
-            
-            throw lastError || new Error('All upload attempts failed');
-        }
-        
-        // NEW: Convert ArrayBuffer to Base64
-        function arrayBufferToBase64(buffer) {
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            const len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-        }
-        
-        // NEW: Convert Base64 to ArrayBuffer
-        function base64ToArrayBuffer(base64) {
-            const binaryString = atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-        
-        // NEW: Read file as ArrayBuffer
-        function readFileAsArrayBuffer(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                reader.onerror = function() {
-                    reject(new Error("Failed to read file"));
-                };
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        // NEW: Load model from URL parameters
-        async function loadModelFromUrlParam() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const modelName = urlParams.get('model');
-            const modelType = urlParams.get('type');
-            const modelData = urlParams.get('data');
-            const externalUrl = urlParams.get('url');
-            
-            if (externalUrl) {
-                // Load from external URL
-                updateStatus("Loading shared model from external service...", false);
-                showLoading(true);
-                
-                try {
-                    const response = await fetch(externalUrl);
-                    if (!response.ok) {
-                        throw new Error(`Failed to download model: ${response.status}`);
-                    }
-                    
-                    const blob = await response.blob();
-                    const file = new File([blob], modelName || 'shared-model', { type: modelType || 'application/octet-stream' });
-                    
-                    currentModelFile = file;
-                    await loadModel(file);
-                    updateStatus("Shared model loaded successfully", false);
-                } catch (error) {
-                    console.error("Error loading shared model:", error);
-                    updateStatus("Error loading shared model: " + error.message, true);
-                    showLoading(false);
-                }
-            } else if (modelName && modelType && modelData) {
-                // Load from Data URL
-                updateStatus("Loading shared model...", false);
-                showLoading(true);
-                
-                try {
-                    const arrayBuffer = base64ToArrayBuffer(modelData);
-                    const blob = new Blob([arrayBuffer], { type: modelType });
-                    const file = new File([blob], modelName, { type: modelType });
-                    
-                    currentModelFile = file;
-                    await loadModel(file);
-                    updateStatus("Shared model loaded successfully", false);
-                } catch (error) {
-                    console.error("Error loading shared model:", error);
-                    updateStatus("Error loading shared model: " + error.message, true);
-                    showLoading(false);
-                }
-            }
-        }
-        
-        // NEW: Copy link to clipboard
-        function copyLinkToClipboard() {
-            const shareLink = document.getElementById('share-link');
-            shareLink.select();
-            shareLink.setSelectionRange(0, 99999);
-            
-            try {
-                navigator.clipboard.writeText(shareLink.value).then(function() {
-                    updateStatus("Link copied to clipboard", false);
-                }).catch(function() {
-                    document.execCommand('copy');
-                    updateStatus("Link copied to clipboard", false);
-                });
-            } catch (error) {
-                document.execCommand('copy');
-                updateStatus("Link copied to clipboard", false);
-            }
-        }
-        
         // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x2c3e50);
@@ -1278,40 +1059,465 @@
             }
         }
         
-        // NEW: Read file as ArrayBuffer with progress tracking
-        function readFileAsArrayBufferWithProgress(file, progressCallback) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                let lastPercent = 0;
-                
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                
-                reader.onerror = function() {
-                    reject(new Error("Failed to read file"));
-                };
-                
-                reader.onprogress = function(event) {
-                    if (event.lengthComputable) {
-                        const percent = Math.round((event.loaded / event.total) * 100);
-                        if (percent > lastPercent) {
-                            lastPercent = percent;
-                            progressCallback(percent);
-                        }
+        // Create material based on type and properties
+        function createMaterial(type, color, wireframe) {
+            const colorValue = color || document.getElementById('model-color').value;
+            
+            switch(type) {
+                case 'basic':
+                    return new THREE.MeshBasicMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
+                case 'standard':
+                    const metalness = parseFloat(document.getElementById('metalness').value);
+                    const roughness = parseFloat(document.getElementById('roughness').value);
+                    return new THREE.MeshStandardMaterial({ 
+                        color: colorValue,
+                        metalness: metalness,
+                        roughness: roughness,
+                        wireframe: wireframe
+                    });
+                case 'phong':
+                    const shininess = parseFloat(document.getElementById('shininess').value);
+                    return new THREE.MeshPhongMaterial({ 
+                        color: colorValue,
+                        specular: 0x111111,
+                        shininess: shininess,
+                        wireframe: wireframe
+                    });
+                case 'lambert':
+                    return new THREE.MeshLambertMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
+                case 'toon':
+                    return new THREE.MeshToonMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
+                case 'normal':
+                    return new THREE.MeshNormalMaterial({ 
+                        wireframe: wireframe
+                    });
+                default:
+                    return new THREE.MeshPhongMaterial({ 
+                        color: colorValue,
+                        wireframe: wireframe
+                    });
+            }
+        }
+        
+        // Apply material to model
+        function applyMaterialToModel() {
+            if (!currentModel) return;
+            
+            currentModel.traverse((child) => {
+                if (child.isMesh) {
+                    const newMaterial = createMaterial(currentMaterialType, child.material.color, wireframeVisible);
+                    child.material = newMaterial;
+                }
+            });
+            
+            // Store materials for color control
+            storeOriginalMaterials(currentModel);
+        }
+        
+        // Store original materials for color and wireframe control
+        function storeOriginalMaterials(model) {
+            currentMaterials = [];
+            model.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    currentMaterials.push({
+                        mesh: child,
+                        originalMaterial: child.material
+                    });
+                }
+            });
+        }
+        
+        // Update model color
+        function updateModelColor() {
+            const colorValue = document.getElementById('model-color').value;
+            
+            currentMaterials.forEach(item => {
+                if (item.mesh && item.mesh.material) {
+                    item.mesh.material.color.set(colorValue);
+                }
+            });
+        }
+        
+        // Toggle wireframe mode
+        function toggleWireframe() {
+            wireframeVisible = !wireframeVisible;
+            
+            currentMaterials.forEach(item => {
+                if (item.mesh && item.mesh.material) {
+                    item.mesh.material.wireframe = wireframeVisible;
+                }
+            });
+            
+            document.getElementById('toggle-wireframe').textContent = 
+                "Wireframe: " + (wireframeVisible ? "On" : "Off");
+        }
+        
+        // Toggle auto rotation
+        function toggleRotation() {
+            autoRotation = !autoRotation;
+            document.getElementById('toggle-rotation').textContent = 
+                "Auto Rotation: " + (autoRotation ? "On" : "Off");
+        }
+        
+        // Toggle rotation direction
+        function toggleRotationDirection() {
+            rotationDirection = -rotationDirection;
+            document.getElementById('rotation-direction').textContent = 
+                "Rotation: " + (rotationDirection > 0 ? "CW" : "CCW");
+        }
+        
+        // Update rotation speed
+        function updateRotationSpeed() {
+            rotationSpeed = parseFloat(document.getElementById('rotation-speed').value);
+        }
+        
+        // Update material properties
+        function updateMaterialProperties() {
+            if (!currentModel) return;
+            
+            currentModel.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.material instanceof THREE.MeshStandardMaterial) {
+                        child.material.metalness = parseFloat(document.getElementById('metalness').value);
+                        child.material.roughness = parseFloat(document.getElementById('roughness').value);
+                    } else if (child.material instanceof THREE.MeshPhongMaterial) {
+                        child.material.shininess = parseFloat(document.getElementById('shininess').value);
                     }
+                }
+            });
+        }
+        
+        // Change material type
+        function changeMaterialType(type) {
+            currentMaterialType = type;
+            applyMaterialToModel();
+            
+            // Show/hide material properties based on material type
+            const materialProps = document.getElementById('material-props');
+            if (type === 'standard') {
+                materialProps.style.display = 'block';
+            } else if (type === 'phong') {
+                materialProps.style.display = 'block';
+            } else {
+                materialProps.style.display = 'none';
+            }
+            
+            updateStatus(`Material changed to: ${type}`, false);
+        }
+        
+        // Load STL model from file
+        function loadSTLModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.STLLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const geometry = loader.parse(event.target.result);
+                        
+                        // Create mesh with current material
+                        const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        
+                        resolve(mesh);
+                    } catch (error) {
+                        console.error("STL load error:", error);
+                        reject(new Error("Failed to load STL file: " + error.message));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read STL file"));
                 };
                 
                 reader.readAsArrayBuffer(file);
             });
         }
         
-        // ... (остальной код остается без изменений, включая функции для материалов, аннотаций и т.д.)
-
-        // Остальной код (функции для материалов, аннотаций, загрузки моделей и т.д.) остается без изменений
-        // ... [Весь остальной JavaScript код из предыдущей версии] ...
-
+        // Load GLB/GLTF model from file
+        function loadGLTFModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.GLTFLoader();
+                const url = URL.createObjectURL(file);
+                
+                loader.load(
+                    url,
+                    function(gltf) {
+                        URL.revokeObjectURL(url);
+                        const model = gltf.scene;
+                        
+                        // Apply our material to the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const newMaterial = createMaterial(currentMaterialType, child.material?.color, wireframeVisible);
+                                child.material = newMaterial;
+                            }
+                        });
+                        
+                        resolve(model);
+                    },
+                    function(xhr) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        document.getElementById('progress').textContent = percent + '%';
+                    },
+                    function(error) {
+                        URL.revokeObjectURL(url);
+                        console.error("GLTF load error:", error);
+                        reject(new Error("Failed to load GLB/GLTF file"));
+                    }
+                );
+            });
+        }
+        
+        // Load OBJ model from file
+        function loadOBJModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const model = loader.parse(event.target.result);
+                        
+                        // Apply material to all meshes in the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                                child.material = material;
+                            }
+                        });
+                        
+                        resolve(model);
+                    } catch (error) {
+                        console.error("OBJ load error:", error);
+                        reject(new Error("Failed to load OBJ file"));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read OBJ file"));
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+        
+        // Main model loading function from file
+        function loadModel(file) {
+            updateStatus("Loading 3D model...", false);
+            showLoading(true);
+            
+            // Remove previous model
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            const fileExtension = file.name.toLowerCase().split('.').pop();
+            let loadPromise;
+            
+            // Determine which loader to use based on file extension
+            if (fileExtension === 'stl') {
+                loadPromise = loadSTLModel(file);
+            } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
+                loadPromise = loadGLTFModel(file);
+            } else if (fileExtension === 'obj') {
+                loadPromise = loadOBJModel(file);
+            } else {
+                updateStatus("Unsupported file format", true);
+                showLoading(false);
+                return;
+            }
+            
+            loadPromise
+                .then(model => {
+                    // Create a container group for the model
+                    const container = new THREE.Group();
+                    container.add(model);
+                    
+                    // Calculate the bounding box of the model
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // Center the model within the container
+                    model.position.x = -center.x;
+                    model.position.y = -center.y;
+                    model.position.z = -center.z;
+                    
+                    // Add the container to the scene
+                    currentModel = container;
+                    scene.add(currentModel);
+                    
+                    // Store the file for sharing
+                    currentModelFile = file;
+                    
+                    // Store materials for color control
+                    storeOriginalMaterials(currentModel);
+                    
+                    // Adjust camera to fit model
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+                    
+                    // Set camera position
+                    camera.position.set(0, 0, cameraZ * 1.5);
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                    
+                    showLoading(false);
+                    updateStatus(`3D model loaded successfully: ${file.name}`, false);
+                })
+                .catch(error => {
+                    console.error("Model load error:", error);
+                    showLoading(false);
+                    updateStatus(`Error: ${error.message}`, true);
+                });
+        }
+        
+        // Event listeners for UI controls
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const fileExtension = file.name.toLowerCase().split('.').pop();
+                const supportedFormats = ['stl', 'glb', 'gltf', 'obj'];
+                
+                if (supportedFormats.includes(fileExtension)) {
+                    if (checkFileSize(file)) {
+                        loadModel(file);
+                    }
+                } else {
+                    updateStatus("Please select a STL, GLB, or OBJ file", true);
+                }
+            }
+        });
+        
+        // Material type buttons
+        document.querySelectorAll('.material-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                changeMaterialType(this.dataset.material);
+            });
+        });
+        
+        // Material property sliders
+        document.getElementById('metalness').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        document.getElementById('roughness').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        document.getElementById('shininess').addEventListener('input', function() {
+            updateMaterialProperties();
+        });
+        
+        // Color picker event
+        document.getElementById('model-color').addEventListener('input', function() {
+            updateModelColor();
+        });
+        
+        // Wireframe toggle event
+        document.getElementById('toggle-wireframe').addEventListener('click', function() {
+            toggleWireframe();
+            updateStatus("Wireframe " + (wireframeVisible ? "enabled" : "disabled"), false);
+        });
+        
+        // Auto rotation toggle event
+        document.getElementById('toggle-rotation').addEventListener('click', function() {
+            toggleRotation();
+            updateStatus("Auto rotation " + (autoRotation ? "enabled" : "disabled"), false);
+        });
+        
+        // Rotation direction toggle event
+        document.getElementById('rotation-direction').addEventListener('click', function() {
+            toggleRotationDirection();
+            updateStatus("Rotation direction: " + (rotationDirection > 0 ? "clockwise" : "counter-clockwise"), false);
+        });
+        
+        // Rotation speed event
+        document.getElementById('rotation-speed').addEventListener('input', function() {
+            updateRotationSpeed();
+        });
+        
+        document.getElementById('reset-view').addEventListener('click', function() {
+            controls.reset();
+            updateStatus("View reset", false);
+        });
+        
+        document.getElementById('toggle-grid').addEventListener('click', function() {
+            gridVisible = !gridVisible;
+            gridHelper.visible = gridVisible;
+            this.textContent = "Grid: " + (gridVisible ? "On" : "Off");
+            updateStatus("Grid " + (gridVisible ? "enabled" : "disabled"), false);
+        });
+        
+        document.getElementById('toggle-axes').addEventListener('click', function() {
+            axesVisible = !axesVisible;
+            axesHelper.visible = axesVisible;
+            this.textContent = "Axes: " + (axesVisible ? "On" : "Off");
+            updateStatus("Axes " + (axesVisible ? "enabled" : "disabled"), false);
+        });
+        
+        document.getElementById('bg-dark').addEventListener('click', function() {
+            scene.background = new THREE.Color(0x2c3e50);
+            updateStatus("Dark background enabled", false);
+        });
+        
+        document.getElementById('bg-light').addEventListener('click', function() {
+            scene.background = new THREE.Color(0xcccccc);
+            updateStatus("Light background enabled", false);
+        });
+        
+        document.getElementById('bg-gradient').addEventListener('click', function() {
+            // Create gradient background
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            const gradient = context.createLinearGradient(0, 0, 256, 256);
+            gradient.addColorStop(0, '#1a2a6c');
+            gradient.addColorStop(0.5, '#b21f1f');
+            gradient.addColorStop(1, '#fdbb2d');
+            
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 256, 256);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            scene.background = texture;
+            updateStatus("Gradient background enabled", false);
+        });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Вращаем контейнер модели если включена автоповорот
+            if (autoRotation && currentModel) {
+                currentModel.rotation.y += rotationSpeed * 0.01 * rotationDirection;
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Start the animation
+        animate();
+        
         // Initialize the application
+        function initializeApp() {
+            updateStatus("Ready to load 3D model. Please select a file to begin.", false);
+        }
+        
         initializeApp();
     </script>
 </body>
