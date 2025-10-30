@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer PRO</title>
     <style>
+        /* Все стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -23,7 +24,7 @@
         }
         .container {
             width: 100%;
-            max-width: 1400px;
+            max-width: 1200px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -119,6 +120,26 @@
         .screenshot-btn:hover {
             background: #3aa8d0;
         }
+        .file-input-container {
+            margin: 10px 5px;
+        }
+        .file-input-label {
+            display: block;
+            background: #7209b7;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .file-input-label:hover {
+            background: #5a08a0;
+            transform: translateY(-2px);
+        }
+        input[type="file"] {
+            display: none;
+        }
         .status {
             background: rgba(0, 0, 0, 0.3);
             padding: 15px;
@@ -202,80 +223,110 @@
         .direction-control button {
             flex: 1;
         }
+        .format-info {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: center;
+        }
         
-        /* Screenshot preview layout */
+        /* UPDATED: Screenshot preview with better scrolling */
         .screenshot-preview {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
             display: none;
             flex-direction: column;
             padding: 20px;
-            overflow: hidden;
+            overflow-y: auto;
         }
-        
         .screenshot-preview-content {
-            width: 100%;
-            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
-            gap: 20px;
+            flex-direction: column;
+            gap: 15px;
             background: rgba(30, 30, 40, 0.9);
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
-        
-        .screenshot-main-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            min-width: 0;
+        .screenshot-preview h3 {
+            text-align: center;
+            margin-bottom: 10px;
         }
-        
-        .screenshot-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #444;
-        }
-        
-        .screenshot-header h3 {
-            margin: 0;
-            color: #ff9d00;
-        }
-        
         .screenshot-image-container {
-            flex: 1;
             display: flex;
             justify-content: center;
-            align-items: center;
-            background: #1a1a1a;
-            border-radius: 8px;
-            padding: 10px;
+            max-height: 70vh;
             overflow: auto;
-            position: relative;
+            border-radius: 5px;
+            background: #1a1a1a;
+            padding: 10px;
         }
-        
-        .annotation-canvas-container {
-            position: relative;
-            display: inline-block;
-            max-width: 100%;
-            max-height: 100%;
-        }
-        
-        #screenshot-image {
+        .screenshot-image-container img {
             max-width: 100%;
             max-height: 100%;
             border-radius: 5px;
             border: 2px solid #fff;
         }
+        .screenshot-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .screenshot-buttons button {
+            width: auto;
+            padding: 10px 20px;
+            min-width: 180px;
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
         
+        /* Annotation controls and canvas styles */
+        .annotation-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            background: rgba(40, 40, 50, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .annotation-control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .annotation-control-row label {
+            min-width: 120px;
+        }
+        .annotation-control-row input {
+            flex: 1;
+        }
+        .annotation-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .annotation-buttons button {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .annotation-canvas-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
         #annotation-canvas {
             position: absolute;
             top: 0;
@@ -285,92 +336,31 @@
             cursor: crosshair;
         }
         
-        .screenshot-sidebar {
-            width: 350px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background: rgba(40, 40, 50, 0.8);
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .annotation-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .annotation-control-group {
-            background: rgba(50, 50, 60, 0.7);
-            border-radius: 8px;
-            padding: 15px;
-        }
-        
-        .annotation-control-group h4 {
-            margin-bottom: 10px;
-            color: #4cc9f0;
-            font-size: 16px;
-        }
-        
-        .annotation-control-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 8px 0;
-        }
-        
-        .annotation-control-row label {
-            min-width: 120px;
-            font-size: 14px;
-        }
-        
-        .annotation-control-row input {
-            flex: 1;
-        }
-        
-        .annotation-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-        
-        .annotation-buttons button {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-            margin: 0;
-        }
-        
-        .annotation-list-container {
-            max-height: 200px;
+        /* Selected annotation styling */
+        .annotation-list {
+            max-height: 150px;
             overflow-y: auto;
             margin-top: 10px;
             background: rgba(30, 30, 40, 0.7);
             border-radius: 5px;
             padding: 5px;
         }
-        
         .annotation-item {
             display: flex;
             align-items: center;
-            padding: 8px;
+            padding: 5px;
             margin: 3px 0;
             border-radius: 3px;
             cursor: pointer;
             transition: background 0.2s;
         }
-        
         .annotation-item:hover {
             background: rgba(255, 255, 255, 0.1);
         }
-        
         .annotation-item.selected {
             background: rgba(76, 201, 240, 0.3);
             border: 1px solid #4cc9f0;
         }
-        
         .annotation-number {
             display: inline-block;
             width: 24px;
@@ -383,20 +373,10 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
         .annotation-size {
             margin-left: auto;
             font-size: 12px;
             opacity: 0.8;
-        }
-        
-        .comment-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #4cc9f0;
-            border-radius: 50%;
-            margin-left: 5px;
         }
         
         /* Comment controls */
@@ -407,18 +387,15 @@
             border-radius: 5px;
             display: none;
         }
-        
         .comment-control-row {
             display: flex;
             flex-direction: column;
             gap: 5px;
             margin-bottom: 10px;
         }
-        
         .comment-control-row label {
             font-size: 14px;
         }
-        
         .comment-control-row select, 
         .comment-control-row input {
             padding: 8px;
@@ -427,7 +404,6 @@
             background: rgba(30, 30, 40, 0.8);
             color: white;
         }
-        
         .comment-control-row textarea {
             padding: 8px;
             border-radius: 5px;
@@ -437,28 +413,16 @@
             resize: vertical;
             min-height: 60px;
         }
-        
-        .screenshot-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
+        .comment-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4cc9f0;
+            border-radius: 50%;
+            margin-left: 5px;
         }
         
-        .screenshot-buttons button {
-            width: auto;
-            padding: 10px 20px;
-            min-width: 180px;
-        }
-        
-        footer {
-            margin-top: 30px;
-            text-align: center;
-            opacity: 0.7;
-            font-size: 0.9rem;
-        }
-        
-        /* Close button at top right */
+        /* NEW: Close button at top right */
         .close-preview-top {
             position: absolute;
             top: 30px;
@@ -477,61 +441,9 @@
             z-index: 1001;
             transition: all 0.3s;
         }
-        
         .close-preview-top:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
-        }
-        
-        /* Zoom controls */
-        .zoom-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 10;
-        }
-        
-        .zoom-btn {
-            width: 40px;
-            height: 40px;
-            background: rgba(30, 30, 40, 0.8);
-            border: none;
-            border-radius: 5px;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .zoom-btn:hover {
-            background: rgba(50, 50, 60, 0.9);
-        }
-        
-        .zoom-level {
-            position: absolute;
-            bottom: 70px;
-            right: 20px;
-            background: rgba(30, 30, 40, 0.8);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        @media (max-width: 1024px) {
-            .screenshot-preview-content {
-                flex-direction: column;
-            }
-            
-            .screenshot-sidebar {
-                width: 100%;
-                max-height: 300px;
-            }
         }
         
         @media (max-width: 768px) {
@@ -539,45 +451,25 @@
                 flex-direction: column;
                 align-items: center;
             }
-            
             #controls {
                 width: 100%;
                 max-width: 300px;
             }
-            
-            .screenshot-preview {
-                padding: 10px;
-            }
-            
             .screenshot-preview-content {
                 padding: 15px;
             }
-            
             .annotation-control-row {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
             .annotation-control-row label {
                 min-width: auto;
             }
-            
             .screenshot-buttons {
                 flex-direction: column;
             }
-            
             .screenshot-buttons button {
                 width: 100%;
-            }
-            
-            .zoom-controls {
-                bottom: 10px;
-                right: 10px;
-            }
-            
-            .zoom-level {
-                bottom: 60px;
-                right: 10px;
             }
         }
     </style>
@@ -599,6 +491,17 @@
             </div>
 
             <div id="controls">
+                <div class="control-group">
+                    <h3>File Upload</h3>
+                    <div class="file-input-container">
+                        <label for="file-input" class="file-input-label">
+                            Choose 3D Model File
+                        </label>
+                        <input type="file" id="file-input" accept=".stl,.glb,.obj">
+                        <p class="format-info">Supports: STL, GLB, OBJ formats</p>
+                    </div>
+                </div>
+
                 <div class="control-group">
                     <h3>Material Type</h3>
                     <div class="material-control">
@@ -661,104 +564,85 @@
                     <button id="take-screenshot" class="screenshot-btn">Take Screenshot</button>
                 </div>
 
-                <div class="status" id="status">Loading 3D model...</div>
+                <div class="status" id="status">Searching for models...</div>
             </div>
         </div>
 
-        <!-- Screenshot preview layout -->
         <div class="screenshot-preview" id="screenshot-preview">
             <button class="close-preview-top" id="close-preview-top">×</button>
             <div class="screenshot-preview-content">
-                <div class="screenshot-main-area">
-                    <div class="screenshot-header">
-                        <h3>Screenshot with Annotations</h3>
+                <h3>Screenshot Preview with Annotations</h3>
+                
+                <div class="annotation-controls">
+                    <div class="annotation-control-row">
+                        <label for="default-annotation-radius">Default Marker Radius:</label>
+                        <input type="range" id="default-annotation-radius" min="10" max="50" value="20">
+                        <span id="default-radius-value">20px</span>
                     </div>
-                    <div class="screenshot-image-container">
-                        <div class="annotation-canvas-container">
-                            <img id="screenshot-image" src="" alt="Screenshot">
-                            <canvas id="annotation-canvas"></canvas>
+                    
+                    <div id="selected-annotation-controls" style="display: none;">
+                        <div class="annotation-control-row">
+                            <label for="selected-annotation-radius">Selected Marker Radius:</label>
+                            <input type="range" id="selected-annotation-radius" min="10" max="50" value="20">
+                            <span id="selected-radius-value">20px</span>
                         </div>
-                        <div class="zoom-controls">
-                            <div class="zoom-level" id="zoom-level">100%</div>
-                            <button class="zoom-btn" id="zoom-in">+</button>
-                            <button class="zoom-btn" id="zoom-out">-</button>
-                            <button class="zoom-btn" id="zoom-reset">⟲</button>
+                        
+                        <!-- Comment controls for selected annotation -->
+                        <div class="comment-controls" id="comment-controls">
+                            <div class="comment-control-row">
+                                <label for="comment-type">Comment Type:</label>
+                                <select id="comment-type">
+                                    <option value="">No comment</option>
+                                    <option value="make_more_convex">Сделать более выпуклым</option>
+                                    <option value="make_more_concave">Сделать более вдавленным</option>
+                                    <option value="make_narrower_width">Сделать уже по ширине</option>
+                                    <option value="make_wider_width">Сделать шире по ширине</option>
+                                    <option value="make_narrower_height">Сделать уже по высоте</option>
+                                    <option value="make_wider_height">Сделать шире по высоте</option>
+                                    <option value="custom">Свой вариант</option>
+                                </select>
+                            </div>
+                            
+                            <div class="comment-control-row" id="custom-comment-container" style="display: none;">
+                                <label for="custom-comment">Custom Comment:</label>
+                                <textarea id="custom-comment" placeholder="Введите ваш комментарий..."></textarea>
+                            </div>
+                            
+                            <div class="comment-control-row">
+                                <button id="save-comment" class="screenshot-btn">Save Comment</button>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; font-size: 12px; margin-top: 5px;">
+                            Editing Marker <span id="selected-annotation-number">1</span>
                         </div>
                     </div>
-                    <div class="screenshot-buttons">
-                        <button id="download-annotated-screenshot" class="screenshot-btn">Download with Markers & Comments</button>
-                        <button id="close-preview">Close Preview</button>
+                    
+                    <div class="annotation-buttons">
+                        <button id="clear-annotations" class="screenshot-btn">Clear All Markers</button>
+                        <button id="delete-selected-annotation" class="screenshot-btn">Delete Selected</button>
+                    </div>
+                    
+                    <div class="annotation-list" id="annotation-list">
+                        <!-- Annotation items will be added here dynamically -->
+                    </div>
+                    
+                    <p style="font-size: 12px; text-align: center; margin-top: 10px;">
+                        Click on the image to add markers. Drag to move markers.<br>
+                        Click on a marker in the list to select and edit it.
+                    </p>
+                </div>
+                
+                <div class="screenshot-image-container">
+                    <div class="annotation-canvas-container">
+                        <img id="screenshot-image" src="" alt="Screenshot">
+                        <canvas id="annotation-canvas"></canvas>
                     </div>
                 </div>
                 
-                <div class="screenshot-sidebar">
-                    <div class="annotation-controls">
-                        <div class="annotation-control-group">
-                            <h4>Marker Settings</h4>
-                            <div class="annotation-control-row">
-                                <label for="default-annotation-radius">Default Radius:</label>
-                                <input type="range" id="default-annotation-radius" min="10" max="50" value="20">
-                                <span id="default-radius-value">20px</span>
-                            </div>
-                            
-                            <div id="selected-annotation-controls" style="display: none;">
-                                <div class="annotation-control-row">
-                                    <label for="selected-annotation-radius">Selected Radius:</label>
-                                    <input type="range" id="selected-annotation-radius" min="10" max="50" value="20">
-                                    <span id="selected-radius-value">20px</span>
-                                </div>
-                                
-                                <div style="text-align: center; font-size: 12px; margin-top: 5px;">
-                                    Editing Marker <span id="selected-annotation-number">1</span>
-                                </div>
-                            </div>
-                            
-                            <div class="annotation-buttons">
-                                <button id="clear-annotations" class="screenshot-btn">Clear All</button>
-                                <button id="delete-selected-annotation" class="screenshot-btn">Delete Selected</button>
-                            </div>
-                        </div>
-                        
-                        <div class="annotation-control-group">
-                            <h4>Comments</h4>
-                            <!-- Comment controls for selected annotation -->
-                            <div class="comment-controls" id="comment-controls">
-                                <div class="comment-control-row">
-                                    <label for="comment-type">Comment Type:</label>
-                                    <select id="comment-type">
-                                        <option value="">No comment</option>
-                                        <option value="make_more_convex">Сделать более выпуклым</option>
-                                        <option value="make_more_concave">Сделать более вдавленным</option>
-                                        <option value="make_narrower_width">Сделать уже по ширине</option>
-                                        <option value="make_wider_width">Сделать шире по ширине</option>
-                                        <option value="make_narrower_height">Сделать уже по высоте</option>
-                                        <option value="make_wider_height">Сделать шире по высоте</option>
-                                        <option value="custom">Свой вариант</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="comment-control-row" id="custom-comment-container" style="display: none;">
-                                    <label for="custom-comment">Custom Comment:</label>
-                                    <textarea id="custom-comment" placeholder="Введите ваш комментарий..."></textarea>
-                                </div>
-                                
-                                <div class="comment-control-row">
-                                    <button id="save-comment" class="screenshot-btn">Save Comment</button>
-                                </div>
-                            </div>
-                            <p style="font-size: 12px; text-align: center; margin-top: 10px;">
-                                Click on the image to add markers. Drag to move markers.<br>
-                                Click on a marker in the list to select and edit it.
-                            </p>
-                        </div>
-                        
-                        <div class="annotation-control-group">
-                            <h4>Markers List</h4>
-                            <div class="annotation-list-container" id="annotation-list">
-                                <!-- Annotation items will be added here dynamically -->
-                            </div>
-                        </div>
-                    </div>
+                <div class="screenshot-buttons">
+                    <button id="download-annotated-screenshot" class="screenshot-btn">Download with Markers & Comments</button>
+                    <button id="close-preview">Close</button>
                 </div>
             </div>
         </div>
@@ -798,12 +682,6 @@
         let annotationCanvas, annotationCtx;
         let screenshotImg;
         
-        // Zoom variables
-        let zoomLevel = 1.0;
-        const ZOOM_STEP = 0.1;
-        const MIN_ZOOM = 0.5;
-        const MAX_ZOOM = 3.0;
-        
         // Comment options mapping
         const commentOptions = {
             "make_more_convex": "Сделать более выпуклым",
@@ -814,6 +692,10 @@
             "make_wider_height": "Сделать шире по высоте",
             "custom": "Свой вариант"
         };
+        
+        // NEW: Auto-discover models in the models folder
+        const MODEL_EXTENSIONS = ['stl', 'glb', 'gltf', 'obj'];
+        const MODELS_FOLDER = './models/';
         
         // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
@@ -1042,6 +924,205 @@
             updateStatus(`Material changed to: ${type}`, false);
         }
         
+        // NEW: Auto-discover and load models
+        function autoLoadModel() {
+            updateStatus("Searching for models in /models folder...", false);
+            
+            // Try to load a default model with common extensions
+            const modelPromises = MODEL_EXTENSIONS.map(ext => {
+                const modelUrl = `${MODELS_FOLDER}default.${ext}`;
+                return loadModelFromURL(modelUrl)
+                    .then(() => {
+                        updateStatus(`Loaded default model: default.${ext}`, false);
+                        return true; // Success
+                    })
+                    .catch(() => false); // Failed, continue to next
+            });
+            
+            // If no default model found, try to find any model in the folder
+            Promise.all(modelPromises).then(results => {
+                const success = results.some(result => result === true);
+                
+                if (!success) {
+                    updateStatus("No default model found. Please upload a model manually.", true);
+                }
+            });
+        }
+        
+        // Load model from URL
+        function loadModelFromURL(url) {
+            return new Promise((resolve, reject) => {
+                updateStatus(`Loading model: ${url}`, false);
+                showLoading(true);
+                
+                // Remove previous model
+                if (currentModel) {
+                    scene.remove(currentModel);
+                }
+                
+                const fileExtension = url.toLowerCase().split('.').pop();
+                let loadPromise;
+                
+                // Determine which loader to use based on file extension
+                if (fileExtension === 'stl') {
+                    loadPromise = loadSTLFromURL(url);
+                } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
+                    loadPromise = loadGLBFromURL(url);
+                } else if (fileExtension === 'obj') {
+                    loadPromise = loadOBJFromURL(url);
+                } else {
+                    updateStatus("Unsupported file format", true);
+                    showLoading(false);
+                    reject(new Error("Unsupported file format"));
+                    return;
+                }
+                
+                loadPromise
+                    .then(model => {
+                        // Create a container group for the model
+                        const container = new THREE.Group();
+                        container.add(model);
+                        
+                        // Calculate the bounding box of the model
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+                        
+                        // Center the model within the container
+                        model.position.x = -center.x;
+                        model.position.y = -center.y;
+                        model.position.z = -center.z;
+                        
+                        // Add the container to the scene
+                        currentModel = container;
+                        scene.add(currentModel);
+                        
+                        // Store materials for color control
+                        storeOriginalMaterials(currentModel);
+                        
+                        // Adjust camera to fit model
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const fov = camera.fov * (Math.PI / 180);
+                        let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+                        
+                        // Set camera position
+                        camera.position.set(0, 0, cameraZ * 1.5);
+                        controls.target.set(0, 0, 0);
+                        controls.update();
+                        
+                        showLoading(false);
+                        updateStatus(`3D model loaded successfully: ${url.split('/').pop()}`, false);
+                        resolve(model);
+                    })
+                    .catch(error => {
+                        console.error("Model load error:", error);
+                        showLoading(false);
+                        updateStatus(`Error loading ${url}: ${error.message}`, true);
+                        reject(error);
+                    });
+            });
+        }
+        
+        // Load STL from URL
+        function loadSTLFromURL(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.STLLoader();
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.arrayBuffer();
+                    })
+                    .then(data => {
+                        try {
+                            const geometry = loader.parse(data);
+                            
+                            // Create mesh with current material
+                            const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                            const mesh = new THREE.Mesh(geometry, material);
+                            
+                            resolve(mesh);
+                        } catch (error) {
+                            console.error("STL load error:", error);
+                            reject(new Error("Failed to load STL file from URL: " + error.message));
+                        }
+                    })
+                    .catch(error => {
+                        reject(new Error("Failed to fetch STL file: " + error.message));
+                    });
+            });
+        }
+        
+        // Load GLB/GLTF from URL
+        function loadGLBFromURL(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.GLTFLoader();
+                
+                loader.load(
+                    url,
+                    function(gltf) {
+                        const model = gltf.scene;
+                        
+                        // Apply our material to the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const newMaterial = createMaterial(currentMaterialType, child.material?.color, wireframeVisible);
+                                child.material = newMaterial;
+                            }
+                        });
+                        
+                        resolve(model);
+                    },
+                    function(xhr) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        document.getElementById('progress').textContent = percent + '%';
+                    },
+                    function(error) {
+                        console.error("GLTF load error:", error);
+                        reject(new Error("Failed to load GLB/GLTF file from URL"));
+                    }
+                );
+            });
+        }
+        
+        // Load OBJ from URL
+        function loadOBJFromURL(url) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        try {
+                            const model = loader.parse(data);
+                            
+                            // Apply material to all meshes in the model
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                                    child.material = material;
+                                }
+                            });
+                            
+                            resolve(model);
+                        } catch (error) {
+                            console.error("OBJ load error:", error);
+                            reject(new Error("Failed to load OBJ file from URL: " + error.message));
+                        }
+                    })
+                    .catch(error => {
+                        reject(new Error("Failed to fetch OBJ file: " + error.message));
+                    });
+            });
+        }
+        
         // Annotation functions
         
         // Initialize annotation canvas
@@ -1051,11 +1132,8 @@
             
             // Set canvas size to match the image
             const img = document.getElementById('screenshot-image');
-            const originalWidth = img.naturalWidth;
-            const originalHeight = img.naturalHeight;
-            
-            annotationCanvas.width = originalWidth * zoomLevel;
-            annotationCanvas.height = originalHeight * zoomLevel;
+            annotationCanvas.width = img.clientWidth;
+            annotationCanvas.height = img.clientHeight;
             
             // Clear previous annotations
             annotations = [];
@@ -1063,35 +1141,21 @@
             selectedAnnotation = null;
             updateAnnotationList();
             redrawAnnotations();
-            
-            // Reset zoom
-            resetZoom();
         }
         
         // Add annotation at position
         function addAnnotation(x, y) {
-            // Корректируем координаты с учетом реального размера canvas
-            const rect = annotationCanvas.getBoundingClientRect();
-            const scaleX = annotationCanvas.width / rect.width;
-            const scaleY = annotationCanvas.height / rect.height;
-            
-            const adjustedX = x * scaleX;
-            const adjustedY = y * scaleY;
-            
             const annotation = {
                 id: annotationCounter++,
-                x: adjustedX,
-                y: adjustedY,
-                radius: defaultAnnotationRadius * zoomLevel, // Учитываем зум для радиуса
+                x: x,
+                y: y,
+                radius: defaultAnnotationRadius,
                 comment: null
             };
             
             annotations.push(annotation);
             updateAnnotationList();
             redrawAnnotations();
-            
-            // Select the new annotation
-            selectAnnotation(annotation);
         }
         
         // Redraw all annotations on canvas
@@ -1164,19 +1228,11 @@
         
         // Get annotation at position
         function getAnnotationAt(x, y) {
-            // Корректируем координаты с учетом реального размера canvas
-            const rect = annotationCanvas.getBoundingClientRect();
-            const scaleX = annotationCanvas.width / rect.width;
-            const scaleY = annotationCanvas.height / rect.height;
-            
-            const adjustedX = x * scaleX;
-            const adjustedY = y * scaleY;
-            
             for (let i = annotations.length - 1; i >= 0; i--) {
                 const annotation = annotations[i];
                 const distance = Math.sqrt(
-                    Math.pow(adjustedX - annotation.x, 2) + 
-                    Math.pow(adjustedY - annotation.y, 2)
+                    Math.pow(x - annotation.x, 2) + 
+                    Math.pow(y - annotation.y, 2)
                 );
                 
                 if (distance <= annotation.radius) {
@@ -1195,8 +1251,8 @@
         // Update selected annotation radius
         function updateSelectedAnnotationRadius() {
             if (selectedAnnotation) {
-                selectedAnnotation.radius = parseInt(document.getElementById('selected-annotation-radius').value) * zoomLevel;
-                document.getElementById('selected-radius-value').textContent = Math.round(selectedAnnotation.radius / zoomLevel) + 'px';
+                selectedAnnotation.radius = parseInt(document.getElementById('selected-annotation-radius').value);
+                document.getElementById('selected-radius-value').textContent = selectedAnnotation.radius + 'px';
                 redrawAnnotations();
                 updateAnnotationList();
             }
@@ -1209,8 +1265,8 @@
             if (annotation) {
                 // Show selected annotation controls
                 document.getElementById('selected-annotation-controls').style.display = 'block';
-                document.getElementById('selected-annotation-radius').value = Math.round(annotation.radius / zoomLevel);
-                document.getElementById('selected-radius-value').textContent = Math.round(annotation.radius / zoomLevel) + 'px';
+                document.getElementById('selected-annotation-radius').value = annotation.radius;
+                document.getElementById('selected-radius-value').textContent = annotation.radius + 'px';
                 document.getElementById('selected-annotation-number').textContent = annotation.id;
                 
                 // Show comment controls and set values
@@ -1254,7 +1310,7 @@
                 item.innerHTML = `
                     <span class="annotation-number">${annotation.id}</span>
                     Marker ${annotation.id}
-                    <span class="annotation-size">${Math.round(annotation.radius / zoomLevel)}px</span>
+                    <span class="annotation-size">${annotation.radius}px</span>
                     ${commentIndicator}
                 `;
                 
@@ -1369,26 +1425,29 @@
             // Draw the original screenshot
             tempCtx.drawImage(screenshotImg, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // Draw all annotations (в оригинальном масштабе)
+            // Calculate scale factors for annotations
+            const scaleX = tempCanvas.width / annotationCanvas.width;
+            const scaleY = tempCanvas.height / annotationCanvas.height;
+            
+            // Draw all annotations
             annotations.forEach(annotation => {
-                // Конвертируем координаты обратно в оригинальный масштаб
-                const originalX = annotation.x / zoomLevel;
-                const originalY = annotation.y / zoomLevel;
-                const originalRadius = annotation.radius / zoomLevel;
+                const scaledX = annotation.x * scaleX;
+                const scaledY = annotation.y * scaleY;
+                const scaledRadius = annotation.radius * Math.min(scaleX, scaleY);
                 
                 // Draw circle
                 tempCtx.beginPath();
-                tempCtx.arc(originalX, originalY, originalRadius, 0, 2 * Math.PI);
+                tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
                 tempCtx.strokeStyle = '#ff0000';
-                tempCtx.lineWidth = 3;
+                tempCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
                 tempCtx.stroke();
                 
                 // Draw number
                 tempCtx.fillStyle = '#ff0000';
-                tempCtx.font = 'bold ' + (originalRadius * 0.8) + 'px Arial';
+                tempCtx.font = 'bold ' + (scaledRadius * 0.8) + 'px Arial';
                 tempCtx.textAlign = 'center';
                 tempCtx.textBaseline = 'middle';
-                tempCtx.fillText(annotation.id.toString(), originalX, originalY);
+                tempCtx.fillText(annotation.id.toString(), scaledX, scaledY);
                 
                 // Draw comment if exists
                 if (annotation.comment) {
@@ -1398,21 +1457,22 @@
                     
                     if (commentText) {
                         // Draw comment text below the marker
+                        const fontSize = 12 * Math.min(scaleX, scaleY);
                         tempCtx.fillStyle = '#4cc9f0';
-                        tempCtx.font = '12px Arial';
+                        tempCtx.font = `bold ${fontSize}px Arial`;
                         tempCtx.textAlign = 'center';
                         tempCtx.textBaseline = 'top';
                         
                         // Draw background for better readability
                         const textMetrics = tempCtx.measureText(commentText);
                         const textWidth = textMetrics.width;
-                        const textHeight = 16;
-                        const padding = 4;
+                        const textHeight = fontSize;
+                        const padding = 4 * Math.min(scaleX, scaleY);
                         
                         tempCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                         tempCtx.fillRect(
-                            originalX - textWidth/2 - padding,
-                            originalY + originalRadius + 5,
+                            scaledX - textWidth/2 - padding,
+                            scaledY + scaledRadius + 5 * Math.min(scaleX, scaleY),
                             textWidth + padding*2,
                             textHeight + padding
                         );
@@ -1421,8 +1481,8 @@
                         tempCtx.fillStyle = '#ffffff';
                         tempCtx.fillText(
                             commentText,
-                            originalX,
-                            originalY + originalRadius + 5 + padding
+                            scaledX,
+                            scaledY + scaledRadius + 5 * Math.min(scaleX, scaleY) + padding/2
                         );
                     }
                 }
@@ -1443,30 +1503,45 @@
             document.getElementById('screenshot-preview').style.display = 'none';
         }
         
-        // Create a simple 3D model as fallback
-        function createFallbackModel() {
-            // Create a group to hold the model
-            const group = new THREE.Group();
-            
-            // Create a simple geometric shape
-            const geometry = new THREE.BoxGeometry(2, 2, 2);
-            const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
-            const cube = new THREE.Mesh(geometry, material);
-            
-            // Add the cube to the group
-            group.add(cube);
-            
-            return group;
+        // Load STL model from file
+        function loadSTLModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.STLLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const geometry = loader.parse(event.target.result);
+                        
+                        // Create mesh with current material
+                        const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                        const mesh = new THREE.Mesh(geometry, material);
+                        
+                        resolve(mesh);
+                    } catch (error) {
+                        console.error("STL load error:", error);
+                        reject(new Error("Failed to load STL file: " + error.message));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read STL file"));
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
         }
         
-        // Load GLB/GLTF model from URL with fallback
-        function loadGLTFModel(url) {
+        // Load GLB/GLTF model from file
+        function loadGLTFModel(file) {
             return new Promise((resolve, reject) => {
                 const loader = new THREE.GLTFLoader();
+                const url = URL.createObjectURL(file);
                 
                 loader.load(
                     url,
                     function(gltf) {
+                        URL.revokeObjectURL(url);
                         const model = gltf.scene;
                         
                         // Apply our material to the model
@@ -1484,18 +1559,49 @@
                         document.getElementById('progress').textContent = percent + '%';
                     },
                     function(error) {
+                        URL.revokeObjectURL(url);
                         console.error("GLTF load error:", error);
-                        // If loading fails, create a fallback model
-                        console.log("Creating fallback model...");
-                        const fallbackModel = createFallbackModel();
-                        resolve(fallbackModel);
+                        reject(new Error("Failed to load GLB/GLTF file"));
                     }
                 );
             });
         }
         
-        // Main model loading function from URL
-        function loadModel(url) {
+        // Load OBJ model from file
+        function loadOBJModel(file) {
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.OBJLoader();
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const model = loader.parse(event.target.result);
+                        
+                        // Apply material to all meshes in the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
+                                child.material = material;
+                            }
+                        });
+                        
+                        resolve(model);
+                    } catch (error) {
+                        console.error("OBJ load error:", error);
+                        reject(new Error("Failed to load OBJ file"));
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    reject(new Error("Failed to read OBJ file"));
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+        
+        // Main model loading function from file
+        function loadModel(file) {
             updateStatus("Loading 3D model...", false);
             showLoading(true);
             
@@ -1504,7 +1610,23 @@
                 scene.remove(currentModel);
             }
             
-            loadGLTFModel(url)
+            const fileExtension = file.name.toLowerCase().split('.').pop();
+            let loadPromise;
+            
+            // Determine which loader to use based on file extension
+            if (fileExtension === 'stl') {
+                loadPromise = loadSTLModel(file);
+            } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
+                loadPromise = loadGLTFModel(file);
+            } else if (fileExtension === 'obj') {
+                loadPromise = loadOBJModel(file);
+            } else {
+                updateStatus("Unsupported file format", true);
+                showLoading(false);
+                return;
+            }
+            
+            loadPromise
                 .then(model => {
                     // Create a container group for the model
                     const container = new THREE.Group();
@@ -1538,7 +1660,7 @@
                     controls.update();
                     
                     showLoading(false);
-                    updateStatus("3D model loaded successfully", false);
+                    updateStatus(`3D model loaded successfully: ${file.name}`, false);
                 })
                 .catch(error => {
                     console.error("Model load error:", error);
@@ -1547,60 +1669,20 @@
                 });
         }
         
-        // NEW: Zoom functions
-        function zoomIn() {
-            if (zoomLevel < MAX_ZOOM) {
-                zoomLevel += ZOOM_STEP;
-                applyZoom();
-            }
-        }
-        
-        function zoomOut() {
-            if (zoomLevel > MIN_ZOOM) {
-                zoomLevel -= ZOOM_STEP;
-                applyZoom();
-            }
-        }
-        
-        function resetZoom() {
-            zoomLevel = 1.0;
-            applyZoom();
-        }
-        
-        function applyZoom() {
-            const img = document.getElementById('screenshot-image');
-            const container = document.querySelector('.annotation-canvas-container');
-            
-            if (img && container) {
-                // Вместо transform используем изменение размеров
-                const originalWidth = img.naturalWidth;
-                const originalHeight = img.naturalHeight;
-                
-                const scaledWidth = originalWidth * zoomLevel;
-                const scaledHeight = originalHeight * zoomLevel;
-                
-                // Обновляем размеры canvas
-                annotationCanvas.width = scaledWidth;
-                annotationCanvas.height = scaledHeight;
-                
-                // Обновляем размеры контейнера
-                container.style.width = scaledWidth + 'px';
-                container.style.height = scaledHeight + 'px';
-                
-                // Перерисовываем аннотации
-                redrawAnnotations();
-                
-                // Update zoom level display
-                document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
-            }
-        }
-        
         // Event listeners for UI controls
-        
-        // NEW: Zoom controls
-        document.getElementById('zoom-in').addEventListener('click', zoomIn);
-        document.getElementById('zoom-out').addEventListener('click', zoomOut);
-        document.getElementById('zoom-reset').addEventListener('click', resetZoom);
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const fileExtension = file.name.toLowerCase().split('.').pop();
+                const supportedFormats = ['stl', 'glb', 'gltf', 'obj'];
+                
+                if (supportedFormats.includes(fileExtension)) {
+                    loadModel(file);
+                } else {
+                    updateStatus("Please select a STL, GLB, or OBJ file", true);
+                }
+            }
+        });
         
         // Material type buttons
         document.querySelectorAll('.material-btn').forEach(button => {
@@ -1668,6 +1750,8 @@
             } else {
                 // Add new annotation
                 addAnnotation(x, y);
+                // Select the new annotation
+                selectAnnotation(annotations[annotations.length - 1]);
             }
         });
         
@@ -1677,13 +1761,8 @@
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
                 
-                // Корректируем координаты с учетом реального размера canvas
-                const scaleX = annotationCanvas.width / rect.width;
-                const scaleY = annotationCanvas.height / rect.height;
-                
-                draggedAnnotation.x = x * scaleX;
-                draggedAnnotation.y = y * scaleY;
-                
+                draggedAnnotation.x = x;
+                draggedAnnotation.y = y;
                 redrawAnnotations();
             }
         });
@@ -1810,9 +1889,8 @@
         // Start the animation
         animate();
         
-        // Load the model on startup
-        const modelUrl = "https://drive.google.com/uc?export=download&id=1e98l3vi_OEw3QzlVvPRypa3KNhPvrrEU";
-        loadModel(modelUrl);
+        // NEW: Auto-load model on page load
+        autoLoadModel();
     </script>
 </body>
 </html>
