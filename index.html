@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Model Viewer PRO</title>
     <style>
-        /* Все стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -120,26 +119,6 @@
         .screenshot-btn:hover {
             background: #3aa8d0;
         }
-        .file-input-container {
-            margin: 10px 5px;
-        }
-        .file-input-label {
-            display: block;
-            background: #7209b7;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        .file-input-label:hover {
-            background: #5a08a0;
-            transform: translateY(-2px);
-        }
-        input[type="file"] {
-            display: none;
-        }
         .status {
             background: rgba(0, 0, 0, 0.3);
             padding: 15px;
@@ -223,14 +202,8 @@
         .direction-control button {
             flex: 1;
         }
-        .format-info {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 5px;
-            text-align: center;
-        }
         
-        /* UPDATED: Improved screenshot preview layout */
+        /* Screenshot preview layout */
         .screenshot-preview {
             position: fixed;
             top: 0;
@@ -261,7 +234,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            min-width: 0; /* Important for flexbox with images */
+            min-width: 0;
         }
         
         .screenshot-header {
@@ -485,7 +458,7 @@
             font-size: 0.9rem;
         }
         
-        /* NEW: Close button at top right */
+        /* Close button at top right */
         .close-preview-top {
             position: absolute;
             top: 30px;
@@ -510,75 +483,7 @@
             transform: scale(1.1);
         }
         
-        /* NEW: Share link controls */
-        .share-controls {
-            margin-top: 10px;
-            display: none;
-        }
-        
-        .share-link-container {
-            display: flex;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        
-        .share-link-container input {
-            flex: 1;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #555;
-            background: rgba(30, 30, 40, 0.8);
-            color: white;
-        }
-        
-        .share-link-container button {
-            width: auto;
-            padding: 8px 12px;
-        }
-        
-        .share-info {
-            font-size: 12px;
-            opacity: 0.8;
-            text-align: center;
-            margin-top: 5px;
-        }
-        
-        /* NEW: File size warning */
-        .file-size-warning {
-            color: #ff6b6b;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        /* NEW: Progress bar for large files */
-        .upload-progress {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            margin-top: 10px;
-            overflow: hidden;
-            display: none;
-        }
-        
-        .upload-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #4cc9f0, #4361ee);
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        
-        .upload-status {
-            font-size: 12px;
-            text-align: center;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        /* NEW: Zoom controls */
+        /* Zoom controls */
         .zoom-controls {
             position: absolute;
             bottom: 20px;
@@ -665,10 +570,6 @@
                 width: 100%;
             }
             
-            .share-link-container {
-                flex-direction: column;
-            }
-            
             .zoom-controls {
                 bottom: 10px;
                 right: 10px;
@@ -698,36 +599,6 @@
             </div>
 
             <div id="controls">
-                <div class="control-group">
-                    <h3>File Upload</h3>
-                    <div class="file-input-container">
-                        <label for="file-input" class="file-input-label">
-                            Choose 3D Model File
-                        </label>
-                        <input type="file" id="file-input" accept=".stl,.glb,.obj">
-                        <p class="format-info">Supports: STL, GLB, OBJ formats (up to 100MB)</p>
-                        <p class="file-size-warning" id="file-size-warning">
-                            Large files may take longer to process
-                        </p>
-                        <div class="upload-progress" id="upload-progress">
-                            <div class="upload-progress-bar" id="upload-progress-bar"></div>
-                        </div>
-                        <div class="upload-status" id="upload-status"></div>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h3>Share Model</h3>
-                    <button id="generate-link" class="screenshot-btn">Generate Temporary Link</button>
-                    <div class="share-controls" id="share-controls">
-                        <div class="share-link-container">
-                            <input type="text" id="share-link" readonly>
-                            <button id="copy-link">Copy</button>
-                        </div>
-                        <p class="share-info">This link will be valid for 24 hours</p>
-                    </div>
-                </div>
-
                 <div class="control-group">
                     <h3>Material Type</h3>
                     <div class="material-control">
@@ -790,11 +661,11 @@
                     <button id="take-screenshot" class="screenshot-btn">Take Screenshot</button>
                 </div>
 
-                <div class="status" id="status">Ready to load 3D model</div>
+                <div class="status" id="status">Loading 3D model...</div>
             </div>
         </div>
 
-        <!-- UPDATED: Improved screenshot preview layout -->
+        <!-- Screenshot preview layout -->
         <div class="screenshot-preview" id="screenshot-preview">
             <button class="close-preview-top" id="close-preview-top">×</button>
             <div class="screenshot-preview-content">
@@ -916,17 +787,6 @@
         let currentMaterialType = 'phong';
         let gridHelper, axesHelper;
         let currentScreenshotUrl = null;
-        let currentModelFile = null;
-        
-        // NEW: Database for storing models
-        let db = null;
-        const DB_NAME = 'ModelViewerDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'models';
-        
-        // NEW: File size limits
-        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
-        const WARNING_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (show warning)
         
         // Annotation variables
         let annotations = [];
@@ -938,7 +798,7 @@
         let annotationCanvas, annotationCtx;
         let screenshotImg;
         
-        // NEW: Zoom variables
+        // Zoom variables
         let zoomLevel = 1.0;
         const ZOOM_STEP = 0.1;
         const MIN_ZOOM = 0.5;
@@ -954,171 +814,6 @@
             "make_wider_height": "Сделать шире по высоте",
             "custom": "Свой вариант"
         };
-        
-        // NEW: Initialize IndexedDB
-        function initDatabase() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = function(event) {
-                    console.error("Database error:", event.target.error);
-                    reject(event.target.error);
-                };
-                
-                request.onsuccess = function(event) {
-                    db = event.target.result;
-                    console.log("Database opened successfully");
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = function(event) {
-                    const database = event.target.result;
-                    
-                    // Create object store if it doesn't exist
-                    if (!database.objectStoreNames.contains(STORE_NAME)) {
-                        const objectStore = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-                        console.log("Object store created");
-                    }
-                };
-            });
-        }
-        
-        // NEW: Store model in IndexedDB with progress tracking
-        function storeModelInDB(modelId, modelData) {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    reject(new Error("Database not initialized"));
-                    return;
-                }
-                
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                
-                const data = {
-                    id: modelId,
-                    name: modelData.name,
-                    type: modelData.type,
-                    data: modelData.data,
-                    timestamp: Date.now(),
-                    expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-                };
-                
-                const request = objectStore.add(data);
-                
-                request.onsuccess = function() {
-                    console.log("Model stored successfully");
-                    resolve();
-                };
-                
-                request.onerror = function(event) {
-                    console.error("Error storing model:", event.target.error);
-                    
-                    // Check if it's a quota error
-                    if (event.target.error.name === 'QuotaExceededError') {
-                        reject(new Error("Not enough storage space. Please free up some space and try again."));
-                    } else {
-                        reject(event.target.error);
-                    }
-                };
-            });
-        }
-        
-        // NEW: Get model from IndexedDB
-        function getModelFromDB(modelId) {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    reject(new Error("Database not initialized"));
-                    return;
-                }
-                
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const request = objectStore.get(modelId);
-                
-                request.onsuccess = function() {
-                    const result = request.result;
-                    if (result) {
-                        // Check if model has expired
-                        if (result.expires && Date.now() > result.expires) {
-                            // Delete expired model
-                            deleteModelFromDB(modelId);
-                            reject(new Error("Model has expired"));
-                        } else {
-                            resolve(result);
-                        }
-                    } else {
-                        reject(new Error("Model not found"));
-                    }
-                };
-                
-                request.onerror = function(event) {
-                    reject(event.target.error);
-                };
-            });
-        }
-        
-        // NEW: Delete model from IndexedDB
-        function deleteModelFromDB(modelId) {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    reject(new Error("Database not initialized"));
-                    return;
-                }
-                
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const request = objectStore.delete(modelId);
-                
-                request.onsuccess = function() {
-                    console.log("Model deleted successfully");
-                    resolve();
-                };
-                
-                request.onerror = function(event) {
-                    reject(event.target.error);
-                };
-            });
-        }
-        
-        // NEW: Clean up expired models
-        function cleanupExpiredModels() {
-            if (!db) return;
-            
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const objectStore = transaction.objectStore(STORE_NAME);
-            const index = objectStore.index('timestamp');
-            const request = index.openCursor();
-            
-            request.onsuccess = function(event) {
-                const cursor = event.target.result;
-                if (cursor) {
-                    const model = cursor.value;
-                    if (model.expires && Date.now() > model.expires) {
-                        cursor.delete();
-                        console.log("Deleted expired model:", model.id);
-                    }
-                    cursor.continue();
-                }
-            };
-        }
-        
-        // NEW: Estimate available storage
-        async function estimateStorage() {
-            if ('storage' in navigator && 'estimate' in navigator.storage) {
-                try {
-                    const estimation = await navigator.storage.estimate();
-                    return {
-                        usage: estimation.usage,
-                        quota: estimation.quota
-                    };
-                } catch (error) {
-                    console.error("Storage estimation failed:", error);
-                    return null;
-                }
-            }
-            return null;
-        }
         
         // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
@@ -1190,235 +885,6 @@
         // Show/hide loading indicator
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
-        
-        // NEW: Show upload progress
-        function showUploadProgress(show, percent = 0, message = '') {
-            const progressContainer = document.getElementById('upload-progress');
-            const progressBar = document.getElementById('upload-progress-bar');
-            const statusElement = document.getElementById('upload-status');
-            
-            if (show) {
-                progressContainer.style.display = 'block';
-                statusElement.style.display = 'block';
-                progressBar.style.width = percent + '%';
-                statusElement.textContent = message;
-            } else {
-                progressContainer.style.display = 'none';
-                statusElement.style.display = 'none';
-            }
-        }
-        
-        // NEW: Generate temporary link for the current model
-        async function generateTemporaryLink() {
-            if (!currentModelFile) {
-                updateStatus("No model loaded to share", true);
-                return;
-            }
-            
-            // Check file size
-            if (currentModelFile.size > MAX_FILE_SIZE) {
-                updateStatus(`File too large for sharing (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`, true);
-                return;
-            }
-            
-            updateStatus("Generating shareable link...", false);
-            showUploadProgress(true, 0, "Preparing model for sharing...");
-            
-            try {
-                // Check available storage
-                const storageInfo = await estimateStorage();
-                if (storageInfo && storageInfo.quota) {
-                    const availableSpace = storageInfo.quota - storageInfo.usage;
-                    if (availableSpace < currentModelFile.size * 2) {
-                        showUploadProgress(false);
-                        updateStatus("Not enough storage space to generate link", true);
-                        return;
-                    }
-                }
-                
-                // Create a unique ID for this model
-                const modelId = 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Read the file with progress tracking
-                showUploadProgress(true, 10, "Reading model file...");
-                const modelData = await readFileAsArrayBufferWithProgress(currentModelFile, 
-                    (percent) => {
-                        showUploadProgress(true, 10 + percent * 0.6, `Reading file: ${Math.round(percent)}%`);
-                    });
-                
-                // Store in IndexedDB
-                showUploadProgress(true, 70, "Storing model in database...");
-                await storeModelInDB(modelId, {
-                    name: currentModelFile.name,
-                    type: currentModelFile.type,
-                    data: modelData
-                });
-                
-                // Generate the shareable URL
-                showUploadProgress(true, 100, "Generating link...");
-                const shareUrl = window.location.origin + window.location.pathname + '?model=' + modelId;
-                
-                // Display the link
-                document.getElementById('share-link').value = shareUrl;
-                document.getElementById('share-controls').style.display = 'block';
-                
-                showUploadProgress(false);
-                updateStatus("Temporary link generated. It will be valid for 24 hours.", false);
-            } catch (error) {
-                console.error("Error generating link:", error);
-                showUploadProgress(false);
-                updateStatus("Error generating link: " + error.message, true);
-            }
-        }
-        
-        // NEW: Read file as ArrayBuffer with progress tracking
-        function readFileAsArrayBufferWithProgress(file, progressCallback) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                let lastPercent = 0;
-                
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                
-                reader.onerror = function() {
-                    reject(new Error("Failed to read file"));
-                };
-                
-                reader.onprogress = function(event) {
-                    if (event.lengthComputable) {
-                        const percent = Math.round((event.loaded / event.total) * 100);
-                        if (percent > lastPercent) {
-                            lastPercent = percent;
-                            progressCallback(percent);
-                        }
-                    }
-                };
-                
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        // NEW: Copy link to clipboard
-        function copyLinkToClipboard() {
-            const shareLink = document.getElementById('share-link');
-            shareLink.select();
-            shareLink.setSelectionRange(0, 99999); // For mobile devices
-            
-            try {
-                navigator.clipboard.writeText(shareLink.value).then(function() {
-                    updateStatus("Link copied to clipboard", false);
-                }).catch(function() {
-                    // Fallback for older browsers
-                    document.execCommand('copy');
-                    updateStatus("Link copied to clipboard", false);
-                });
-            } catch (error) {
-                // Final fallback
-                document.execCommand('copy');
-                updateStatus("Link copied to clipboard", false);
-            }
-        }
-        
-        // NEW: Load model from URL parameter
-        async function loadModelFromUrlParam() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const modelId = urlParams.get('model');
-            
-            if (modelId) {
-                updateStatus("Loading shared model...", false);
-                showLoading(true);
-                
-                try {
-                    // Retrieve model data from IndexedDB
-                    const modelData = await getModelFromDB(modelId);
-                    
-                    // Convert ArrayBuffer back to Blob
-                    const blob = new Blob([modelData.data], { type: modelData.type });
-                    
-                    // Create a File-like object
-                    const file = new File([blob], modelData.name, { type: modelData.type });
-                    
-                    // Load the model
-                    currentModelFile = file;
-                    await loadModel(file);
-                    
-                    updateStatus("Shared model loaded successfully", false);
-                } catch (error) {
-                    console.error("Error loading shared model:", error);
-                    updateStatus("Error loading shared model: " + error.message, true);
-                    showLoading(false);
-                }
-            }
-        }
-        
-        // NEW: Check file size and show warning
-        function checkFileSize(file) {
-            const warningElement = document.getElementById('file-size-warning');
-            
-            if (file.size > MAX_FILE_SIZE) {
-                warningElement.style.display = 'block';
-                warningElement.textContent = `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`;
-                warningElement.style.color = '#ff4444';
-                return false;
-            } else if (file.size > WARNING_FILE_SIZE) {
-                warningElement.style.display = 'block';
-                warningElement.textContent = `Large file (${(file.size / (1024 * 1024)).toFixed(1)}MB). Loading may take some time.`;
-                warningElement.style.color = '#ffa726';
-                return true;
-            } else {
-                warningElement.style.display = 'none';
-                return true;
-            }
-        }
-        
-        // NEW: Zoom functions
-        function zoomIn() {
-            if (zoomLevel < MAX_ZOOM) {
-                zoomLevel += ZOOM_STEP;
-                applyZoom();
-            }
-        }
-        
-        function zoomOut() {
-            if (zoomLevel > MIN_ZOOM) {
-                zoomLevel -= ZOOM_STEP;
-                applyZoom();
-            }
-        }
-        
-        function resetZoom() {
-            zoomLevel = 1.0;
-            applyZoom();
-        }
-        
-        function applyZoom() {
-            const img = document.getElementById('screenshot-image');
-            const container = document.querySelector('.annotation-canvas-container');
-            
-            if (img && container) {
-                // Вместо transform используем изменение размеров
-                const originalWidth = img.naturalWidth;
-                const originalHeight = img.naturalHeight;
-                
-                const scaledWidth = originalWidth * zoomLevel;
-                const scaledHeight = originalHeight * zoomLevel;
-                
-                // Обновляем размеры canvas
-                annotationCanvas.width = scaledWidth;
-                annotationCanvas.height = scaledHeight;
-                
-                // Обновляем размеры контейнера
-                container.style.width = scaledWidth + 'px';
-                container.style.height = scaledHeight + 'px';
-                
-                // Перерисовываем аннотации
-                redrawAnnotations();
-                
-                // Update zoom level display
-                document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
-            }
         }
         
         // Create material based on type and properties
@@ -1977,45 +1443,14 @@
             document.getElementById('screenshot-preview').style.display = 'none';
         }
         
-        // Load STL model from file
-        function loadSTLModel(file) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.STLLoader();
-                
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const geometry = loader.parse(event.target.result);
-                        
-                        // Create mesh with current material
-                        const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
-                        const mesh = new THREE.Mesh(geometry, material);
-                        
-                        resolve(mesh);
-                    } catch (error) {
-                        console.error("STL load error:", error);
-                        reject(new Error("Failed to load STL file: " + error.message));
-                    }
-                };
-                
-                reader.onerror = function(error) {
-                    reject(new Error("Failed to read STL file"));
-                };
-                
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        // Load GLB/GLTF model from file
-        function loadGLTFModel(file) {
+        // Load GLB/GLTF model from URL
+        function loadGLTFModel(url) {
             return new Promise((resolve, reject) => {
                 const loader = new THREE.GLTFLoader();
-                const url = URL.createObjectURL(file);
                 
                 loader.load(
                     url,
                     function(gltf) {
-                        URL.revokeObjectURL(url);
                         const model = gltf.scene;
                         
                         // Apply our material to the model
@@ -2033,7 +1468,6 @@
                         document.getElementById('progress').textContent = percent + '%';
                     },
                     function(error) {
-                        URL.revokeObjectURL(url);
                         console.error("GLTF load error:", error);
                         reject(new Error("Failed to load GLB/GLTF file"));
                     }
@@ -2041,41 +1475,8 @@
             });
         }
         
-        // Load OBJ model from file
-        function loadOBJModel(file) {
-            return new Promise((resolve, reject) => {
-                const loader = new THREE.OBJLoader();
-                
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const model = loader.parse(event.target.result);
-                        
-                        // Apply material to all meshes in the model
-                        model.traverse((child) => {
-                            if (child.isMesh) {
-                                const material = createMaterial(currentMaterialType, document.getElementById('model-color').value, wireframeVisible);
-                                child.material = material;
-                            }
-                        });
-                        
-                        resolve(model);
-                    } catch (error) {
-                        console.error("OBJ load error:", error);
-                        reject(new Error("Failed to load OBJ file"));
-                    }
-                };
-                
-                reader.onerror = function(error) {
-                    reject(new Error("Failed to read OBJ file"));
-                };
-                
-                reader.readAsText(file);
-            });
-        }
-        
-        // Main model loading function from file
-        function loadModel(file) {
+        // Main model loading function from URL
+        function loadModel(url) {
             updateStatus("Loading 3D model...", false);
             showLoading(true);
             
@@ -2084,23 +1485,7 @@
                 scene.remove(currentModel);
             }
             
-            const fileExtension = file.name.toLowerCase().split('.').pop();
-            let loadPromise;
-            
-            // Determine which loader to use based on file extension
-            if (fileExtension === 'stl') {
-                loadPromise = loadSTLModel(file);
-            } else if (fileExtension === 'glb' || fileExtension === 'gltf') {
-                loadPromise = loadGLTFModel(file);
-            } else if (fileExtension === 'obj') {
-                loadPromise = loadOBJModel(file);
-            } else {
-                updateStatus("Unsupported file format", true);
-                showLoading(false);
-                return;
-            }
-            
-            loadPromise
+            loadGLTFModel(url)
                 .then(model => {
                     // Create a container group for the model
                     const container = new THREE.Group();
@@ -2120,9 +1505,6 @@
                     currentModel = container;
                     scene.add(currentModel);
                     
-                    // Store the file for sharing
-                    currentModelFile = file;
-                    
                     // Store materials for color control
                     storeOriginalMaterials(currentModel);
                     
@@ -2137,7 +1519,7 @@
                     controls.update();
                     
                     showLoading(false);
-                    updateStatus(`3D model loaded successfully: ${file.name}`, false);
+                    updateStatus("3D model loaded successfully", false);
                 })
                 .catch(error => {
                     console.error("Model load error:", error);
@@ -2146,28 +1528,55 @@
                 });
         }
         
-        // Event listeners for UI controls
-        document.getElementById('file-input').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const fileExtension = file.name.toLowerCase().split('.').pop();
-                const supportedFormats = ['stl', 'glb', 'gltf', 'obj'];
-                
-                if (supportedFormats.includes(fileExtension)) {
-                    if (checkFileSize(file)) {
-                        loadModel(file);
-                    }
-                } else {
-                    updateStatus("Please select a STL, GLB, or OBJ file", true);
-                }
+        // NEW: Zoom functions
+        function zoomIn() {
+            if (zoomLevel < MAX_ZOOM) {
+                zoomLevel += ZOOM_STEP;
+                applyZoom();
             }
-        });
+        }
         
-        // NEW: Generate link button
-        document.getElementById('generate-link').addEventListener('click', generateTemporaryLink);
+        function zoomOut() {
+            if (zoomLevel > MIN_ZOOM) {
+                zoomLevel -= ZOOM_STEP;
+                applyZoom();
+            }
+        }
         
-        // NEW: Copy link button
-        document.getElementById('copy-link').addEventListener('click', copyLinkToClipboard);
+        function resetZoom() {
+            zoomLevel = 1.0;
+            applyZoom();
+        }
+        
+        function applyZoom() {
+            const img = document.getElementById('screenshot-image');
+            const container = document.querySelector('.annotation-canvas-container');
+            
+            if (img && container) {
+                // Вместо transform используем изменение размеров
+                const originalWidth = img.naturalWidth;
+                const originalHeight = img.naturalHeight;
+                
+                const scaledWidth = originalWidth * zoomLevel;
+                const scaledHeight = originalHeight * zoomLevel;
+                
+                // Обновляем размеры canvas
+                annotationCanvas.width = scaledWidth;
+                annotationCanvas.height = scaledHeight;
+                
+                // Обновляем размеры контейнера
+                container.style.width = scaledWidth + 'px';
+                container.style.height = scaledHeight + 'px';
+                
+                // Перерисовываем аннотации
+                redrawAnnotations();
+                
+                // Update zoom level display
+                document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
+            }
+        }
+        
+        // Event listeners for UI controls
         
         // NEW: Zoom controls
         document.getElementById('zoom-in').addEventListener('click', zoomIn);
@@ -2211,10 +1620,10 @@
         document.getElementById('comment-type').addEventListener('change', function() {
             if (this.value === 'custom') {
                 document.getElementById('custom-comment-container').style.display = 'block';
-                // Auto-save when selecting a predefined comment
-                saveComment();
             } else {
                 document.getElementById('custom-comment-container').style.display = 'none';
+                // Auto-save when selecting a predefined comment
+                saveComment();
             }
         });
         
@@ -2382,24 +1791,9 @@
         // Start the animation
         animate();
         
-        // NEW: Initialize database and load model from URL parameter
-        async function initializeApp() {
-            try {
-                await initDatabase();
-                cleanupExpiredModels();
-                await loadModelFromUrlParam();
-                
-                if (!currentModel) {
-                    updateStatus("Ready to load 3D model. Please select a file to begin.", false);
-                }
-            } catch (error) {
-                console.error("Initialization error:", error);
-                updateStatus("Ready to load 3D model. Please select a file to begin.", false);
-            }
-        }
-        
-        // Initialize the application
-        initializeApp();
+        // Load the model on startup
+        const modelUrl = "https://drive.google.com/uc?export=download&id=1e98l3vi_OEw3QzlVvPRypa3KNhPvrrEU";
+        loadModel(modelUrl);
     </script>
 </body>
 </html>
